@@ -58,7 +58,7 @@ class MainWindow(QMainWindow):
         self.projects_directory = os.path.abspath("Projects")
 
         # Scene data
-        self.scene_data = None # vettore che verrá popolato con tuple:(path_scene, path_thumbnail, label, selected)
+        self.scene_data = None # vettore che verrá popolato con tuple:(path_scene, path_thumbnail, container_widget, selected)
 
         # Create a scroll area for thumbnails
         self.scroll_area = QScrollArea()
@@ -85,6 +85,23 @@ class MainWindow(QMainWindow):
             print("No project loaded")
             return
         return os.path.join(self.project_path, "thumbnails")
+
+    def get_selected_scenes(self):
+        selected_scenes = []
+        for i, (path, thumbnail, label, selected) in enumerate(self.scene_data):
+            if selected:
+                selected_scenes.append(self.scene_data[i])
+        return selected_scenes
+
+    def get_data_from_scene_data(self, scene_path):
+        for i, (path, thumbnail, label, selected) in enumerate(self.scene_data):
+            if path == scene_path:
+                return self.scene_data[i]
+        print ("scene not found")
+
+    def remove_data_from_scene_data(self, scene_path):
+        data = self.get_data_from_scene_data(scene_path)
+        self.scene_data.remove(data)
 
     def create_scenes(self):
         self.pre_processing()
@@ -211,7 +228,7 @@ class MainWindow(QMainWindow):
             thumbnail_label.setPixmap(QPixmap(thumbnail_path).scaled(100, 100, Qt.KeepAspectRatio))
             thumbnail_label.setContextMenuPolicy(Qt.CustomContextMenu)
             thumbnail_label.customContextMenuRequested.connect(
-                lambda pos, s_path=scene_path, t_path=thumbnail_path, label=thumbnail_label: self.show_context_menu(pos, s_path, t_path, label)
+                lambda pos, s_path=scene_path: self.show_context_menu(pos, s_path)
             )
 
             # Aggiungi una QCheckBox per la selezione
@@ -228,28 +245,33 @@ class MainWindow(QMainWindow):
             self.scroll_layout.addWidget(container)  # Aggiungi il contenitore al layout di scorrimento
 
             # Aggiorna la tupla aggiungendo il container dei widget e un attributo booleano per la selezione (checkbox)
-            updated_scene_data.append((scene_path, thumbnail_path, thumbnail_label, False))
+            updated_scene_data.append((scene_path, thumbnail_path, container, False))
 
         self.scene_data = updated_scene_data
 
-    def show_context_menu(self, pos, scene_path, thumbnail_path, label):
+    def show_context_menu(self, pos, scene_path):
         menu = QMenu(self)
         play_action = menu.addAction("Play")
         delete_action = menu.addAction("Delete")
 
-        global_pos = label.mapToGlobal(pos)
+        data = self.get_data_from_scene_data(scene_path)
+        thumbnail_path = data[1]
+        container = data[2]
+        label = container.findChild(QLabel)
+        checkbox = container.findChild(QCheckBox)
+
+        global_pos = label.mapToGlobal(pos) # Ottieni la posizione globale del click
         action = menu.exec(global_pos)
         if action == play_action:
             self.play_video(scene_path)
         elif action == delete_action:
-            self.delete_video(scene_path, thumbnail_path, label)
-
-    def get_selected_scenes(self):
-        selected_scenes = []
-        for i, (path, thumbnail, label, selected) in enumerate(self.scene_data):
-            if selected:
-                selected_scenes.append(self.scene_data[i])
-        return selected_scenes
+            # self.delete_video(scene_path)
+            # self.delete_thumbnail(thumbnail_path)
+            self.remove_widget_from_container(container, label)
+            self.remove_widget_from_container(container, checkbox)
+            self.remove_container_from_layout(container)
+            self.remove_data_from_scene_data(scene_path)
+            print ("scene deleted")
 
     def on_checkbox_state_changed(self, state):
         # if state == 2 checked, 0 unchecked, 1 partial checked
@@ -260,31 +282,51 @@ class MainWindow(QMainWindow):
                 self.scene_data[i] = (path, thumbnail, label, state == 2)
                 print (self.scene_data[i][3])
                 break
-        # if state == 2:
-        #     print("Checkbox is checked")
-        # elif state == 0:
-        #     print("Checkbox is unchecked")
 
-    def delete_video(self, scene_path, thumbnail_path, label):
+    def delete_video (self, scene_path):
         if os.path.exists(scene_path):
             print("removing video")
             os.remove(scene_path)
+        else :
+            print("video not found")
 
+    def delete_thumbnail (self, thumbnail_path):
         if os.path.exists(thumbnail_path):
             print("removing thumbnail")
             os.remove(thumbnail_path)
+        else :
+            print("thumbnail not found")
 
-        self.remove_thumbnail(label)
+    def remove_widget_from_container(self, container, widget):
+        layout = container.layout()
+        if layout:
+            layout.removeWidget(widget)
+            widget.deleteLater()
+        else:
+            print("layout not found, make sure you are passing the right container")
+
+    def remove_container_from_layout(self, container):
+        layout = container.parentWidget().layout()
+        if layout:
+            layout.removeWidget(container)
+            container.deleteLater()
+        else:
+            print("Layout not found, make sure the container has a parent widget with a layout")
 
     def delete_selected_scenes(self):
-        selected_scenes = self.get_selected_scenes()
-        for scene_path, thumbnail_path, label, selected in selected_scenes:
-            self.remove_thumbnail(label)
-            self.delete_video(scene_path, thumbnail_path, label)
-
-    def remove_thumbnail(self, label):
-        self.scroll_layout.removeWidget(label)
-        label.deleteLater()
+        # [:] itera su una copia della lista originale per evitare problemi di modifica durante l'iterazione
+        # alla fine della funzione la lista originale viene sovrascritta con la copia modificata
+        for scene_path, thumbnail_path, container, selected in self.scene_data[:]:
+            if selected:
+                label = container.findChild(QLabel)
+                checkbox = container.findChild(QCheckBox)
+                # self.delete_video(scene_path)
+                # self.delete_thumbnail(thumbnail_path)
+                self.remove_widget_from_container(container, label)
+                self.remove_widget_from_container(container, checkbox)
+                self.remove_container_from_layout(container)
+                self.remove_data_from_scene_data(scene_path)
+                print("scene deleted")
 
     def play_video(self, video_path):
         self.media_player.setSource(QUrl.fromLocalFile(video_path))

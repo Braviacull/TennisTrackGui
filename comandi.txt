@@ -7,7 +7,7 @@ python main.py --path_court_model "model_tennis_court_det.pt"  --path_input_vide
 IMPORTANTE : conda activate myenv
 
 conda activate tennis
-cd "C:\Users\Alessio\Desktop\TennisTrackGui"
+cd "C:\Users\Alessio\OneDrive - University of Pisa\Documenti\Github clones\Tennis\TennisTrackGui"
 
 
 COMANDI PER AGGIORNARE REPO
