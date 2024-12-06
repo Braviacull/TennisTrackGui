@@ -8,3 +8,17 @@ IMPORTANTE : conda activate myenv
 
 conda activate tennis
 cd "C:\Users\Alessio\Desktop\TennisTrackGui"
+
+
+COMANDI PER AGGIORNARE REPO
+
+git status
+
+git add .
+
+git commit -m "Descrizione delle modifiche"
+
+# Prima di fare il push, è buona pratica controllare se ci sono modifiche sul remoto:
+git pull origin main --rebase
+
+git push origin main
