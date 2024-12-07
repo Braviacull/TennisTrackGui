@@ -48,14 +48,15 @@ class MainWindow(QMainWindow):
         self.layout.addWidget(self.load_project_button)
 
         # Select all button
-        self.load_project_button = QPushButton("Select All")
-        self.load_project_button.clicked.connect(self.select_all_checkboxes)
-        self.layout.addWidget(self.load_project_button)
+        self.select_all_button = QPushButton("Select All")
+        self.select_all_button.clicked.connect(self.select_all_checkboxes)
+        self.layout.addWidget(self.select_all_button)
+        self.select_all_button.setEnabled(False)
 
         # JOLLY BUTTON
-        self.load_project_button = QPushButton("Jolly Button")
-        self.load_project_button.clicked.connect(self.delete_selected_scenes)
-        self.layout.addWidget(self.load_project_button)
+        self.jolly_button = QPushButton("Jolly Button")
+        self.jolly_button.clicked.connect(self.delete_selected_scenes)
+        self.layout.addWidget(self.jolly_button)
 
         # Directories and paths
         self.project_path = None
@@ -143,6 +144,7 @@ class MainWindow(QMainWindow):
                 shutil.copy(video_path, os.path.join(self.obtain_input_dir(), os.path.basename(video_path)))
                 self.video_path = os.path.join(self.obtain_input_dir(), os.path.basename(video_path))
                 self.create_scenes()
+                self.select_all_button.setEnabled(True)
 
     def load_project(self):
         project_path = QFileDialog.getExistingDirectory(self, "Select Project Directory", "projects")
@@ -179,6 +181,7 @@ class MainWindow(QMainWindow):
                 return
 
             self.populate_scroll_area()
+            self.select_all_button.setEnabled(True)
 
     def create_thumbnails(self):
         print("Creating thumbnails")
@@ -278,12 +281,21 @@ class MainWindow(QMainWindow):
                 self.scene_data[i] = (path, thumbnail, label, state == 2)
                 print (self.scene_data[i][3])
                 break
+        if state == 0:
+            self.select_all_button.setText("Select All")
 
     def select_all_checkboxes(self):
+        b = None
+        if self.select_all_button.text() == "Select All":
+            self.select_all_button.setText("Deselect All")
+            b = True
+        elif self.select_all_button.text() == "Deselect All":
+            self.select_all_button.setText("Select All")
+            b = False
         for (path, thumbnail, container, selected) in (self.scene_data):
             checkbox = container.findChild(QCheckBox)
             if checkbox:
-                checkbox.setChecked(True)
+                checkbox.setChecked(b)
             else: print ("errore in scene_data, dovrei avere trovato una checkbox ma non é successo")
 
     def delete_video (self, scene_path):
