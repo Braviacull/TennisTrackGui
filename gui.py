@@ -38,14 +38,20 @@ class MainWindow(QMainWindow):
         self.media_player = QMediaPlayer()
         self.media_player.setVideoOutput(self.video_widget)
 
-        # Create buttons for project management
+        # New project button
         self.new_project_button = QPushButton("New Project")
         self.new_project_button.clicked.connect(self.create_new_project)
         self.layout.addWidget(self.new_project_button)
 
+        # Load project button
         self.load_project_button = QPushButton("Load Project")
         self.load_project_button.clicked.connect(self.load_project)
         self.layout.addWidget(self.load_project_button)
+
+        # Save project button
+        self.save_project_button = QPushButton("Save Project")
+        self.save_project_button.clicked.connect(self.save_project)
+        self.layout.addWidget(self.save_project_button)
 
         # Select all button
         self.select_all_button = QPushButton("Select All")
@@ -53,10 +59,10 @@ class MainWindow(QMainWindow):
         self.layout.addWidget(self.select_all_button)
         self.select_all_button.setEnabled(False)
 
-        # JOLLY BUTTON
-        self.jolly_button = QPushButton("Jolly Button")
-        self.jolly_button.clicked.connect(self.delete_selected_scenes)
-        self.layout.addWidget(self.jolly_button)
+        # Delete selected scenes button
+        self.delete_selected_scenes_button = QPushButton("Delete Selected Scenes")
+        self.delete_selected_scenes_button.clicked.connect(self.delete_selected_scenes)
+        self.layout.addWidget(self.delete_selected_scenes_button)
 
         # Directories and paths
         self.project_path = None
@@ -148,29 +154,25 @@ class MainWindow(QMainWindow):
         self.copy_tmp_thumbnails_to_thumbnails()
         self.add_widgets_to_scroll_layout()
 
-    def copy_to_tmp_folders(self):
-        self.copy_output_to_tmp_output()
-        self.copy_thumbnails_to_tmp_thumbnails()
-
     def copy_output_to_tmp_output(self):
         for video in os.listdir(self.obtain_output_dir()):
             video_path = os.path.join(self.obtain_output_dir(), video)
             shutil.copy(video_path, os.path.join(self.obtain_tmp_output_dir(), video))
 
-    def copy_thumbnails_to_tmp_thumbnails(self):
-        for thumbnail in os.listdir(self.obtain_thumbnails_dir()):
-            thumbnail_path = os.path.join(self.obtain_thumbnails_dir(), thumbnail)
-            shutil.copy(thumbnail_path, os.path.join(self.obtain_tmp_thumbnails_dir(), thumbnail))
-
-    def copy_tmp_output_to_output(self):
-        for video in os.listdir(self.obtain_tmp_output_dir()):
-            video_path = os.path.join(self.obtain_tmp_output_dir(), video)
-            shutil.copy(video_path, os.path.join(self.obtain_output_dir(), video))
-
     def copy_tmp_thumbnails_to_thumbnails(self):
         for thumbnail in os.listdir(self.obtain_tmp_thumbnails_dir()):
             thumbnail_path = os.path.join(self.obtain_tmp_thumbnails_dir(), thumbnail)
             shutil.copy(thumbnail_path, os.path.join(self.obtain_thumbnails_dir(), thumbnail))
+
+    def copy_folder_to_folder(self, source, destination):
+        # empty the destination folder
+        for file in os.listdir(destination):
+            file_path = os.path.join(destination, file)
+            os.remove(file_path)
+        # copy the files from the source folder to the destination folder
+        for file in os.listdir(source):
+            file_path = os.path.join(source, file)
+            shutil.copy(file_path, os.path.join(destination, file))
 
     def create_new_project(self):
         project_name, ok = QInputDialog.getText(self, "New Project", "Enter project name:")
@@ -194,7 +196,7 @@ class MainWindow(QMainWindow):
                 self.video_path = os.path.join(self.obtain_input_dir(), os.path.basename(video_path))
                 self.create_scenes()
                 self.select_all_button.setEnabled(True)
-                self.copy_to_tmp_folders()
+                print (self.scene_data)
 
     def load_project(self):
         project_path = QFileDialog.getExistingDirectory(self, "Select Project Directory", "projects")
@@ -204,6 +206,10 @@ class MainWindow(QMainWindow):
             input_dir = self.obtain_input_dir()
             output_dir = self.obtain_output_dir()
             thumbnails_dir = self.obtain_thumbnails_dir()
+
+            # Copy the project folders to the temporary folders so that if the modification were not saved the original project is not modified
+            self.copy_folder_to_folder(output_dir, self.obtain_tmp_output_dir())
+            self.copy_folder_to_folder(thumbnails_dir, self.obtain_tmp_thumbnails_dir())
 
             # Check if the input, output, and thumbnail directories exist
             if not os.path.exists(input_dir):
@@ -232,6 +238,12 @@ class MainWindow(QMainWindow):
 
             self.populate_scroll_area()
             self.select_all_button.setEnabled(True)
+
+    def save_project(self):
+        print("Saving project")
+        self.copy_folder_to_folder(self.obtain_tmp_output_dir(), self.obtain_output_dir())
+        self.copy_folder_to_folder(self.obtain_tmp_thumbnails_dir(), self.obtain_thumbnails_dir())
+        print("Project saved")
 
     def create_thumbnails(self):
         print("Creating thumbnails")
@@ -320,7 +332,7 @@ class MainWindow(QMainWindow):
         if action == play_action:
             self.play_video(scene_path)
         elif action == delete_action:
-            self.remove_scene(container, label, checkbox, scene_path)
+            self.remove_scene(container, label, checkbox, scene_path, thumbnail_path)
 
     def on_checkbox_state_changed(self, state):
         # if state == 2 checked, 0 unchecked, 1 partial checked
@@ -382,9 +394,9 @@ class MainWindow(QMainWindow):
         data = self.get_data_from_scene_data(scene_path)
         self.scene_data.remove(data)
 
-    def remove_scene (self, container, label, checkbox, scene_path):
-        # self.delete_video(scene_path)
-        # self.delete_thumbnail(thumbnail_path)
+    def remove_scene (self, container, label, checkbox, scene_path, thumbnail_path):
+        self.delete_video(scene_path)
+        self.delete_thumbnail(thumbnail_path)
         self.remove_widget_from_container(container, label)
         self.remove_widget_from_container(container, checkbox)
         self.remove_container_from_layout(container)
@@ -398,7 +410,7 @@ class MainWindow(QMainWindow):
             if selected:
                 label = container.findChild(QLabel)
                 checkbox = container.findChild(QCheckBox)
-                self.remove_scene(container, label, checkbox, scene_path)
+                self.remove_scene(container, label, checkbox, scene_path, thumbnail_path)
 
     def play_video(self, video_path):
         self.media_player.setSource(QUrl.fromLocalFile(video_path))
