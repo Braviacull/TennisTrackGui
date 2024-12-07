@@ -63,6 +63,7 @@ class MainWindow(QMainWindow):
         self.delete_selected_scenes_button = QPushButton("Delete Selected Scenes")
         self.delete_selected_scenes_button.clicked.connect(self.delete_selected_scenes)
         self.layout.addWidget(self.delete_selected_scenes_button)
+        self.delete_selected_scenes_button.setEnabled(False)
 
         # Directories and paths
         self.project_path = None
@@ -186,7 +187,7 @@ class MainWindow(QMainWindow):
                 self.video_path = os.path.join(self.obtain_input_dir(), os.path.basename(video_path))
                 self.create_scenes()
                 self.select_all_button.setEnabled(True)
-                print (self.scene_data)
+                self.delete_selected_scenes_button.setEnabled(True)
 
     def load_project(self):
         project_path = QFileDialog.getExistingDirectory(self, "Select Project Directory", "projects")
@@ -228,6 +229,7 @@ class MainWindow(QMainWindow):
 
             self.populate_scroll_area()
             self.select_all_button.setEnabled(True)
+            self.delete_selected_scenes_button.setEnabled(True)
 
     def save_project(self):
         print("Saving project")
