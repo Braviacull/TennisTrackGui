@@ -230,6 +230,7 @@ class MainWindow(QMainWindow):
             self.populate_scroll_area()
             self.select_all_button.setEnabled(True)
             self.delete_selected_scenes_button.setEnabled(True)
+            self.select_all_button.setText("Select All") # Reset the text of the select all button
 
     def save_project(self):
         print("Saving project")
