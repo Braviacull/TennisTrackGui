@@ -14,7 +14,7 @@ class MainWindow(QMainWindow):
         super().__init__()
 
         # Set the window title
-        self.setWindowTitle("Prototipo")
+        self.setWindowTitle("TennisTrack")
 
         # Set the initial size of the main window
         self.resize(800, 600)
@@ -47,6 +47,11 @@ class MainWindow(QMainWindow):
         self.load_project_button.clicked.connect(self.load_project)
         self.layout.addWidget(self.load_project_button)
 
+        # Select all button
+        self.load_project_button = QPushButton("Select All")
+        self.load_project_button.clicked.connect(self.select_all_checkboxes)
+        self.layout.addWidget(self.load_project_button)
+
         # JOLLY BUTTON
         self.load_project_button = QPushButton("Jolly Button")
         self.load_project_button.clicked.connect(self.delete_selected_scenes)
@@ -67,6 +72,7 @@ class MainWindow(QMainWindow):
         self.scroll_layout = QHBoxLayout(self.scroll_content)
         self.scroll_area.setWidget(self.scroll_content)
         self.splitter.addWidget(self.scroll_area)
+        self.scroll_area.resize(150, 150)
 
     def obtain_input_dir(self):
         if not self.project_path:
@@ -98,10 +104,6 @@ class MainWindow(QMainWindow):
             if path == scene_path:
                 return self.scene_data[i]
         print ("scene not found")
-
-    def remove_data_from_scene_data(self, scene_path):
-        data = self.get_data_from_scene_data(scene_path)
-        self.scene_data.remove(data)
 
     def create_scenes(self):
         self.pre_processing()
@@ -265,13 +267,7 @@ class MainWindow(QMainWindow):
         if action == play_action:
             self.play_video(scene_path)
         elif action == delete_action:
-            # self.delete_video(scene_path)
-            # self.delete_thumbnail(thumbnail_path)
-            self.remove_widget_from_container(container, label)
-            self.remove_widget_from_container(container, checkbox)
-            self.remove_container_from_layout(container)
-            self.remove_data_from_scene_data(scene_path)
-            print ("scene deleted")
+            self.remove_scene(container, label, checkbox, scene_path)
 
     def on_checkbox_state_changed(self, state):
         # if state == 2 checked, 0 unchecked, 1 partial checked
@@ -282,6 +278,13 @@ class MainWindow(QMainWindow):
                 self.scene_data[i] = (path, thumbnail, label, state == 2)
                 print (self.scene_data[i][3])
                 break
+
+    def select_all_checkboxes(self):
+        for (path, thumbnail, container, selected) in (self.scene_data):
+            checkbox = container.findChild(QCheckBox)
+            if checkbox:
+                checkbox.setChecked(True)
+            else: print ("errore in scene_data, dovrei avere trovato una checkbox ma non é successo")
 
     def delete_video (self, scene_path):
         if os.path.exists(scene_path):
@@ -313,6 +316,19 @@ class MainWindow(QMainWindow):
         else:
             print("Layout not found, make sure the container has a parent widget with a layout")
 
+    def remove_data_from_scene_data(self, scene_path):
+        data = self.get_data_from_scene_data(scene_path)
+        self.scene_data.remove(data)
+
+    def remove_scene (self, container, label, checkbox, scene_path):
+        # self.delete_video(scene_path)
+        # self.delete_thumbnail(thumbnail_path)
+        self.remove_widget_from_container(container, label)
+        self.remove_widget_from_container(container, checkbox)
+        self.remove_container_from_layout(container)
+        self.remove_data_from_scene_data(scene_path)
+        print("scene deleted")
+
     def delete_selected_scenes(self):
         # [:] itera su una copia della lista originale per evitare problemi di modifica durante l'iterazione
         # alla fine della funzione la lista originale viene sovrascritta con la copia modificata
@@ -320,13 +336,7 @@ class MainWindow(QMainWindow):
             if selected:
                 label = container.findChild(QLabel)
                 checkbox = container.findChild(QCheckBox)
-                # self.delete_video(scene_path)
-                # self.delete_thumbnail(thumbnail_path)
-                self.remove_widget_from_container(container, label)
-                self.remove_widget_from_container(container, checkbox)
-                self.remove_container_from_layout(container)
-                self.remove_data_from_scene_data(scene_path)
-                print("scene deleted")
+                self.remove_scene(container, label, checkbox, scene_path)
 
     def play_video(self, video_path):
         self.media_player.setSource(QUrl.fromLocalFile(video_path))
