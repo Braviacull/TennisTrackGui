@@ -93,6 +93,24 @@ class MainWindow(QMainWindow):
             return
         return os.path.join(self.project_path, "thumbnails")
 
+    def obtain_tmp_dir(self):
+        if not self.project_path:
+            print("No project loaded")
+            return
+        return os.path.join(self.project_path, "tmp")
+    
+    def obtain_tmp_output_dir(self):
+        if not self.project_path:
+            print("No project loaded")
+            return
+        return os.path.join(self.obtain_tmp_dir(), "output")
+    
+    def obtain_tmp_thumbnails_dir(self):
+        if not self.project_path:
+            print("No project loaded")
+            return
+        return os.path.join(self.obtain_tmp_dir(), "thumbnails")
+
     def get_selected_scenes(self):
         selected_scenes = []
         for i, (path, thumbnail, label, selected) in enumerate(self.scene_data):
@@ -108,6 +126,7 @@ class MainWindow(QMainWindow):
 
     def create_scenes(self):
         self.pre_processing()
+        self.copy_output_to_tmp_output()
         self.populate_scroll_area()
 
     def pre_processing(self):
@@ -126,7 +145,32 @@ class MainWindow(QMainWindow):
 
     def populate_scroll_area(self):
         self.create_thumbnails()
+        self.copy_tmp_thumbnails_to_thumbnails()
         self.add_widgets_to_scroll_layout()
+
+    def copy_to_tmp_folders(self):
+        self.copy_output_to_tmp_output()
+        self.copy_thumbnails_to_tmp_thumbnails()
+
+    def copy_output_to_tmp_output(self):
+        for video in os.listdir(self.obtain_output_dir()):
+            video_path = os.path.join(self.obtain_output_dir(), video)
+            shutil.copy(video_path, os.path.join(self.obtain_tmp_output_dir(), video))
+
+    def copy_thumbnails_to_tmp_thumbnails(self):
+        for thumbnail in os.listdir(self.obtain_thumbnails_dir()):
+            thumbnail_path = os.path.join(self.obtain_thumbnails_dir(), thumbnail)
+            shutil.copy(thumbnail_path, os.path.join(self.obtain_tmp_thumbnails_dir(), thumbnail))
+
+    def copy_tmp_output_to_output(self):
+        for video in os.listdir(self.obtain_tmp_output_dir()):
+            video_path = os.path.join(self.obtain_tmp_output_dir(), video)
+            shutil.copy(video_path, os.path.join(self.obtain_output_dir(), video))
+
+    def copy_tmp_thumbnails_to_thumbnails(self):
+        for thumbnail in os.listdir(self.obtain_tmp_thumbnails_dir()):
+            thumbnail_path = os.path.join(self.obtain_tmp_thumbnails_dir(), thumbnail)
+            shutil.copy(thumbnail_path, os.path.join(self.obtain_thumbnails_dir(), thumbnail))
 
     def create_new_project(self):
         project_name, ok = QInputDialog.getText(self, "New Project", "Enter project name:")
@@ -140,11 +184,17 @@ class MainWindow(QMainWindow):
             os.makedirs(self.obtain_input_dir(), exist_ok=True)
             os.makedirs(self.obtain_output_dir(), exist_ok=True)
             os.makedirs(self.obtain_thumbnails_dir(), exist_ok=True)
+            # it is not necessary to create a temporary folder for the input (because it is never modified)
+            os.makedirs(self.obtain_tmp_dir(), exist_ok=True)
+            os.makedirs(self.obtain_tmp_output_dir(), exist_ok=True)
+            os.makedirs(self.obtain_tmp_thumbnails_dir(), exist_ok=True)
+
             if video_path:
                 shutil.copy(video_path, os.path.join(self.obtain_input_dir(), os.path.basename(video_path)))
                 self.video_path = os.path.join(self.obtain_input_dir(), os.path.basename(video_path))
                 self.create_scenes()
                 self.select_all_button.setEnabled(True)
+                self.copy_to_tmp_folders()
 
     def load_project(self):
         project_path = QFileDialog.getExistingDirectory(self, "Select Project Directory", "projects")
@@ -189,30 +239,30 @@ class MainWindow(QMainWindow):
             print("function create_thumbnails says there is no project loaded")
             return
 
-        output_dir = self.obtain_output_dir()
-        thumbnails_dir = self.obtain_thumbnails_dir()
+        tmp_output_dir = self.obtain_tmp_output_dir()
+        tmp_thumbnails_dir = self.obtain_tmp_thumbnails_dir()
 
         output_list = []
         thumbnails_list = []
 
-        if not os.path.exists(thumbnails_dir):
+        if not os.path.exists(tmp_thumbnails_dir):
             print("Thumbnails directory does not exists")
             return
 
-        for scene in os.listdir(output_dir):
+        for scene in os.listdir(tmp_output_dir):
             if scene.endswith(".mp4"):
-                scene_path = os.path.join(output_dir, scene)
+                scene_path = os.path.join(tmp_output_dir, scene)
                 cap = cv2.VideoCapture(scene_path)
                 ret, frame = cap.read()
                 if ret:
                     print(f"Creating thumbnail for {scene}")
-                    thumbnail_path = os.path.join(thumbnails_dir, os.path.splitext(scene)[0] + "_thumbnail.jpg")
+                    thumbnail_path = os.path.join(tmp_thumbnails_dir, os.path.splitext(scene)[0] + "_thumbnail.jpg")
                     cv2.imwrite(thumbnail_path, frame)
                     print(f"Thumbnail created at {thumbnail_path}")
-                    # Add the path of the thumbnail to the list
-                    thumbnails_list.append(thumbnail_path)
                     # Add the path of the video to the list
                     output_list.append(scene_path)
+                    # Add the path of the thumbnail to the list
+                    thumbnails_list.append(thumbnail_path)
                 else:
                     print(f"Failed to read frame from {scene_path}")
                 cap.release()
