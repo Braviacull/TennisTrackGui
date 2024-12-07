@@ -1,16 +1,20 @@
+
+# COMANDI PER AVVIARE DIVERSE PARTI DI CODICE
+
+# MAIN PROGETTO ORIGINALE:
 python main.py --path_ball_track_model "model_best.pt"  --path_court_model "model_tennis_court_det.pt"  --path_bounce_model "ctb_regr_bounce.cbm"  --path_input_video "C:\Users\Alessio\Desktop\input\sinner10sec.mp4"  --path_output_video "C:\Users\Alessio\Desktop\output\sinner10secoutput.mp4"
 
 python scene_detect_test.py --path_input_video "C:\Users\Alessio\Desktop\input\sinner10sec.mp4"  --path_output_video "C:\Users\Alessio\Desktop\output\sinner.mp4"
 
+# MAIN MIO RIMUOVI PUBBLICITÀ:
 python main.py --path_court_model "model_tennis_court_det.pt"  --path_input_video "C:\Users\Alessio\Desktop\input\sinner.mp4"  --path_output_video "C:\Users\Alessio\Desktop\output\sinner.mp4"
 
-IMPORTANTE : conda activate myenv
+# IMPORTANTE : conda activate myenv
 
 conda activate tennis
 cd "C:\Users\Alessio\OneDrive - University of Pisa\Documenti\Github clones\Tennis\TennisTrackGui"
 
-
-COMANDI PER AGGIORNARE REPO
+# COMANDI PER AGGIORNARE REPO
 
 git status
 
