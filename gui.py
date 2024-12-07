@@ -132,7 +132,7 @@ class MainWindow(QMainWindow):
 
     def create_scenes(self):
         self.pre_processing()
-        self.copy_output_to_tmp_output()
+        self.copy_folder_to_folder(self.obtain_output_dir(), self.obtain_tmp_output_dir())
         self.populate_scroll_area()
 
     def pre_processing(self):
@@ -151,18 +151,8 @@ class MainWindow(QMainWindow):
 
     def populate_scroll_area(self):
         self.create_thumbnails()
-        self.copy_tmp_thumbnails_to_thumbnails()
+        self.copy_folder_to_folder(self.obtain_tmp_thumbnails_dir(), self.obtain_thumbnails_dir())
         self.add_widgets_to_scroll_layout()
-
-    def copy_output_to_tmp_output(self):
-        for video in os.listdir(self.obtain_output_dir()):
-            video_path = os.path.join(self.obtain_output_dir(), video)
-            shutil.copy(video_path, os.path.join(self.obtain_tmp_output_dir(), video))
-
-    def copy_tmp_thumbnails_to_thumbnails(self):
-        for thumbnail in os.listdir(self.obtain_tmp_thumbnails_dir()):
-            thumbnail_path = os.path.join(self.obtain_tmp_thumbnails_dir(), thumbnail)
-            shutil.copy(thumbnail_path, os.path.join(self.obtain_thumbnails_dir(), thumbnail))
 
     def copy_folder_to_folder(self, source, destination):
         # empty the destination folder
