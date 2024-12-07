@@ -1,5 +1,33 @@
 # TennisTrackGui
 
+# ENGLISH VERSION
+
+# Instructions to create and set up an environment to use the program on Windows:
+
+<!-- 
+IMPORTANT: if at any point something doesn't work, restarting the system can be a solution.
+
+IMPORTANT: always use pip to install packages.
+
+IMPORTANT: use cmd, do not use PowerShell (I couldn't get conda to work on PowerShell for some reason).
+
+* If you have a CUDA-compatible GPU and intend to use it. 
+-->
+
+0) Install the latest version of Python.
+
+1) Install conda (or miniconda). We will use it only to create and activate the environment.
+2) * Update NVIDIA drivers (preferably studio version).
+3) * Install compatible CUDA Toolkit and PyTorch (check the PyTorch website).
+4) * Run python cudaTest.py (if it returns True, then everything went well and the GPU will be used for calculations).
+5) conda create --name tennis or any other name you want to give to your environment.
+6) conda activate tennis or any other name chosen in the previous step.
+7) pip install PySide6
+8) pip install opencv-python
+9) pip install -r requirements.txt
+
+# VERSIONE IN ITALIANO
+
 # Istruzioni per creare e settare un ambiente in cui poter usare il programma su Windows:
 
 <!-- 
