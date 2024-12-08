@@ -13,9 +13,6 @@ IMPORTANT: use cmd, do not use PowerShell (I couldn't get conda to work on Power
 
 * If you have a CUDA-compatible GPU and intend to use it. 
 -->
-
-0) Install the latest version of Python.
-
 1) Install conda (or miniconda). We will use it only to create and activate the environment.
 2) * Update NVIDIA drivers (preferably studio version).
 3) * Install compatible CUDA Toolkit and PyTorch (check the PyTorch website).
@@ -39,9 +36,6 @@ IMPORTANTE: usa cmd, non usare powershell (non sono riuscito a far funzionare co
 
 * Se si dispone di una gpu cuda compatible e si intende utilizzarla. 
 -->
-
-0) installa la versione più recente di python.
-
 1) Installa conda (o miniconda). Lo useremo soltanto per creare e attivare l'ambiente.
 2) * Aggiorna i driver di NVIDIA (versione studio preferibilmente).
 3) * Installa Cuda Toolkit e pytorch compatibili  (controlla sul sito di pytorch).

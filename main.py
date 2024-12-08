@@ -2,46 +2,8 @@ import cv2
 from court_detection_net import CourtDetectorNet
 from utils import scene_detect
 import argparse
+from video_operations import read_video, write
 import torch
-
-# Funzione per leggere un video e restituire i frame e il frame rate
-def read_video(path_video):
-    cap = cv2.VideoCapture(path_video)
-    fps = int(cap.get(cv2.CAP_PROP_FPS))
-    frames = []
-    while cap.isOpened():
-        ret, frame = cap.read()
-        if ret:
-            frames.append(frame)
-        else:
-            break
-    cap.release()
-    return frames, fps
-
-# Funzione per scrivere i frame risultanti in un video
-def write(imgs_res, fps, path_output_video):
-    height, width = imgs_res[0].shape[:2]
-    out = cv2.VideoWriter(path_output_video, cv2.VideoWriter_fourcc(*'DIVX'), fps, (width, height))
-    for num in range(len(imgs_res)):
-        frame = imgs_res[num]
-        out.write(frame)
-    out.release()
-
-# def adjust_scenes(scenes, max_frames):
-#     adjusted_scenes = []
-#     for start, end in scenes:
-#         if end - start > max_frames:
-#             adjusted_scenes.append((start, start + max_frames))
-#         else:
-#             adjusted_scenes.append((start, end))
-#     return adjusted_scenes
-#
-# def filter_frames(frames, scenes):
-#     filtered_frames = []
-#     for start, end in scenes:
-#         filtered_frames.extend(frames[start:end])
-#     return filtered_frames
-pass
 
 # Funzione principale per elaborare i frame del video
 def main(frames, scenes, homography_matrices,

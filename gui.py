@@ -3,6 +3,7 @@ from PySide6.QtMultimediaWidgets import QVideoWidget
 from PySide6.QtWidgets import QMainWindow, QWidget, QVBoxLayout, QPushButton, QScrollArea, QHBoxLayout, QFileDialog, QLabel, QApplication, QSplitter, QInputDialog, QMenu, QCheckBox
 from PySide6.QtGui import QPixmap
 from PySide6.QtCore import QUrl, Qt
+from video_operations import read_video, write
 import os
 import cv2
 import sys
@@ -65,13 +66,19 @@ class MainWindow(QMainWindow):
         self.layout.addWidget(self.delete_selected_scenes_button)
         self.delete_selected_scenes_button.setEnabled(False)
 
+        # Merge scenes button
+        self.merge_scenes_button = QPushButton("Merge Scenes")
+        self.merge_scenes_button.clicked.connect(self.merge_scenes)
+        self.layout.addWidget(self.merge_scenes_button)
+        # self.merge_scenes_button.setEnabled(False)
+
         # Directories and paths
         self.project_path = None
         self.video_path = None
         self.projects_directory = os.path.abspath("Projects")
 
         # Scene data
-        self.scene_data = None # vettore che verrá popolato con tuple:(path_scene, path_thumbnail, container_widget, selected)
+        self.scene_data = None # vettore che verrá popolato con tuple:(scene_path, thumbnail_path, container, selected)
 
         # Create a scroll area for thumbnails
         self.scroll_area = QScrollArea()
@@ -120,7 +127,7 @@ class MainWindow(QMainWindow):
 
     def get_selected_scenes(self):
         selected_scenes = []
-        for i, (path, thumbnail, label, selected) in enumerate(self.scene_data):
+        for i, (_, _, _, selected) in enumerate(self.scene_data):
             if selected:
                 selected_scenes.append(self.scene_data[i])
         return selected_scenes
@@ -408,6 +415,42 @@ class MainWindow(QMainWindow):
     def play_video(self, video_path):
         self.media_player.setSource(QUrl.fromLocalFile(video_path))
         self.media_player.play()
+
+
+    def merge_scenes (self):
+        scenes_to_merge = self.get_selected_scenes()
+        if scenes_to_merge is None:
+            print("No scenes selected")
+            return
+        
+        final_frames = []
+        final_fps = None
+        for (scene_path, thumbnail_path, container, selected) in scenes_to_merge: 
+            frames, fps= read_video(scene_path)
+            final_frames.extend(frames)
+            if final_fps is None: # first iteration
+                final_fps = fps
+            elif final_fps != fps:
+                print("Error: different frame rates")
+                return
+            
+        if final_frames == [] or final_fps is None:
+            print("Error: no frames to merge")
+            return
+        
+        os.remove(scenes_to_merge[0][0]) # remove the first scene
+        write(final_frames, final_fps, scenes_to_merge[0][0])
+
+        res_scene = scenes_to_merge[0]
+
+        # deselect the resulting scene
+        container = res_scene[2]
+        checkbox = container.findChild(QCheckBox)
+        checkbox.setChecked(False)
+
+        self.delete_selected_scenes()
+        print (self.scene_data)
+
 
     def clear_layout(self, layout):
         while layout.count():
