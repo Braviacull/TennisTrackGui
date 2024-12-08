@@ -155,12 +155,38 @@ class MainWindow(QMainWindow):
         output_path = os.path.join(self.obtain_output_dir(), "output_video.mp4")
         model_path = "model_tennis_court_det.pt"
         command = [
-            "python", "main.py",
+            "python", "preProcessing.py",
             "--path_court_model", model_path,
             "--path_input_video", self.video_path,
             "--path_output_video", output_path
         ]
         subprocess.run(command)
+
+    # parser.add_argument('--path_ball_track_model', type=str, help='path to pretrained model for ball detection')
+    # parser.add_argument('--path_court_model', type=str, help='path to pretrained model for court detection')
+    # parser.add_argument('--path_bounce_model', type=str, help='path to pretrained model for bounce detection')
+    # parser.add_argument('--path_input_video', type=str, help='path to input video')
+    # parser.add_argument('--path_output_video', type=str, help='path to output video')
+
+    def processings(self, scene, output_path):
+        if not scene[0].endswith(".mp4"):
+            print("No video path in this scene")
+            return
+        
+        ball_model_path = "model_best.pt"
+        court_model_path = "model_tennis_court_det.pt"
+        bounce_model_path = "ctb_regr_bounce.cbm"
+
+        command = [
+            "python", "main.py",
+            "--path_ball_track_model", ball_model_path,
+            "--path_court_model", court_model_path,
+            "--path_bounce_model" , bounce_model_path,
+            "--path_input_video", self.video_path,
+            "--path_output_video", output_path
+        ]
+        subprocess.run(command)
+        pass
 
     def populate_scroll_area(self):
         self.create_thumbnails()
@@ -423,7 +449,6 @@ class MainWindow(QMainWindow):
         self.media_player.setSource(QUrl.fromLocalFile(video_path))
         self.media_player.play()
 
-
     def merge_scenes (self):
         scenes_to_merge = self.get_selected_scenes()
         if scenes_to_merge is None:
@@ -457,7 +482,6 @@ class MainWindow(QMainWindow):
 
         self.delete_selected_scenes()
         print (self.scene_data)
-
 
     def clear_layout(self, layout):
         while layout.count():

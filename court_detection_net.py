@@ -16,7 +16,7 @@ class CourtDetectorNet():
         self.device = device
         if path_model:
             # Carica i pesi del modello pre-addestrato
-            self.model.load_state_dict(torch.load(path_model, map_location=device))
+            self.model.load_state_dict(torch.load(path_model, map_location=device, weights_only=False))
             self.model = self.model.to(device)
             self.model.eval()
 

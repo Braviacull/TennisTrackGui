@@ -2,7 +2,7 @@
 # COMANDI PER AVVIARE DIVERSE PARTI DI CODICE
 
 # MAIN PROGETTO ORIGINALE:
-python main.py --path_ball_track_model "model_best.pt"  --path_court_model "model_tennis_court_det.pt"  --path_bounce_model "ctb_regr_bounce.cbm"  --path_input_video "C:\Users\Alessio\Desktop\input\sinner10sec.mp4"  --path_output_video "C:\Users\Alessio\Desktop\output\sinner10secoutput.mp4"
+python main.py --path_ball_track_model "model_best.pt"  --path_court_model "model_tennis_court_det.pt"  --path_bounce_model "ctb_regr_bounce.cbm"  --path_input_video "C:\Users\aless\OneDrive - University of Pisa\Studio\studio in corso\tirocinio\TennisTrackGui\Inputs\djok2.mp4"  --path_output_video "C:\Users\aless\Desktop\output.mp4"
 
 python scene_detect_test.py --path_input_video "C:\Users\Alessio\Desktop\input\sinner10sec.mp4"  --path_output_video "C:\Users\Alessio\Desktop\output\sinner.mp4"
 
