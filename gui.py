@@ -162,32 +162,6 @@ class MainWindow(QMainWindow):
         ]
         subprocess.run(command)
 
-    # parser.add_argument('--path_ball_track_model', type=str, help='path to pretrained model for ball detection')
-    # parser.add_argument('--path_court_model', type=str, help='path to pretrained model for court detection')
-    # parser.add_argument('--path_bounce_model', type=str, help='path to pretrained model for bounce detection')
-    # parser.add_argument('--path_input_video', type=str, help='path to input video')
-    # parser.add_argument('--path_output_video', type=str, help='path to output video')
-
-    def processings(self, scene, output_path):
-        if not scene[0].endswith(".mp4"):
-            print("No video path in this scene")
-            return
-        
-        ball_model_path = "model_best.pt"
-        court_model_path = "model_tennis_court_det.pt"
-        bounce_model_path = "ctb_regr_bounce.cbm"
-
-        command = [
-            "python", "main.py",
-            "--path_ball_track_model", ball_model_path,
-            "--path_court_model", court_model_path,
-            "--path_bounce_model" , bounce_model_path,
-            "--path_input_video", self.video_path,
-            "--path_output_video", output_path
-        ]
-        subprocess.run(command)
-        pass
-
     def populate_scroll_area(self):
         self.create_thumbnails()
         self.copy_folder_to_folder(self.obtain_tmp_thumbnails_dir(), self.obtain_thumbnails_dir())
@@ -353,6 +327,7 @@ class MainWindow(QMainWindow):
         menu = QMenu(self)
         play_action = menu.addAction("Play")
         delete_action = menu.addAction("Delete")
+        process_action = menu.addAction("Process")
 
         data = self.get_data_from_scene_data(scene_path)
         thumbnail_path = data[1]
@@ -366,6 +341,39 @@ class MainWindow(QMainWindow):
             self.play_video(scene_path)
         elif action == delete_action:
             self.remove_scene(container, label, checkbox, scene_path, thumbnail_path)
+        elif action == process_action:
+            output_path = self.add_string_to_basename(scene_path, "_processed")
+            self.processings(scene_path, output_path)
+            os.remove(scene_path)
+            os.rename(output_path, scene_path)
+
+    def add_string_to_basename(self, path, string):
+        # esempio: path = "C:/video.mp4", string = "_processed"
+        # output = "C:/video_processed.mp4"
+        base_name = os.path.basename(path)
+        base_name, extension = os.path.splitext(base_name)
+        res_name = base_name + string + extension
+        res_dir = os.path.dirname(path)
+        return os.path.join(res_dir, res_name)
+
+    def processings(self, scene_path, output_path):
+        if not scene_path.endswith(".mp4") or not output_path.endswith(".mp4"):
+            print("Expected .mp4 files")
+            return
+        
+        ball_model_path = "model_best.pt"
+        court_model_path = "model_tennis_court_det.pt"
+        bounce_model_path = "ctb_regr_bounce.cbm"
+
+        command = [
+            "python", "main.py",
+            "--path_ball_track_model", ball_model_path,
+            "--path_court_model", court_model_path,
+            "--path_bounce_model" , bounce_model_path,
+            "--path_input_video", scene_path,
+            "--path_output_video", output_path
+        ]
+        subprocess.run(command)
 
     def on_checkbox_state_changed(self, state):
         # if state == 2 checked, 0 unchecked, 1 partial checked
