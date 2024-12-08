@@ -39,6 +39,8 @@ class MainWindow(QMainWindow):
         self.media_player = QMediaPlayer()
         self.media_player.setVideoOutput(self.video_widget)
 
+        self.buttons_to_activate = []
+
         # New project button
         self.new_project_button = QPushButton("New Project")
         self.new_project_button.clicked.connect(self.create_new_project)
@@ -59,18 +61,21 @@ class MainWindow(QMainWindow):
         self.select_all_button.clicked.connect(self.select_all_checkboxes)
         self.layout.addWidget(self.select_all_button)
         self.select_all_button.setEnabled(False)
+        self.buttons_to_activate.append(self.select_all_button)
 
         # Delete selected scenes button
         self.delete_selected_scenes_button = QPushButton("Delete Selected Scenes")
         self.delete_selected_scenes_button.clicked.connect(self.delete_selected_scenes)
         self.layout.addWidget(self.delete_selected_scenes_button)
         self.delete_selected_scenes_button.setEnabled(False)
+        self.buttons_to_activate.append(self.delete_selected_scenes_button)
 
         # Merge scenes button
         self.merge_scenes_button = QPushButton("Merge Scenes")
         self.merge_scenes_button.clicked.connect(self.merge_scenes)
         self.layout.addWidget(self.merge_scenes_button)
-        # self.merge_scenes_button.setEnabled(False)
+        self.merge_scenes_button.setEnabled(False)
+        self.buttons_to_activate.append(self.merge_scenes_button)
 
         # Directories and paths
         self.project_path = None
@@ -172,6 +177,10 @@ class MainWindow(QMainWindow):
             file_path = os.path.join(source, file)
             shutil.copy(file_path, os.path.join(destination, file))
 
+    def activate_buttons(self):
+        for button in self.buttons_to_activate:
+            button.setEnabled(True)
+
     def create_new_project(self):
         project_name, ok = QInputDialog.getText(self, "New Project", "Enter project name:")
         project_path = os.path.join(self.projects_directory, project_name)
@@ -193,8 +202,7 @@ class MainWindow(QMainWindow):
                 shutil.copy(video_path, os.path.join(self.obtain_input_dir(), os.path.basename(video_path)))
                 self.video_path = os.path.join(self.obtain_input_dir(), os.path.basename(video_path))
                 self.create_scenes()
-                self.select_all_button.setEnabled(True)
-                self.delete_selected_scenes_button.setEnabled(True)
+                self.activate_buttons()
 
     def load_project(self):
         project_path = QFileDialog.getExistingDirectory(self, "Select Project Directory", "projects")
@@ -235,8 +243,7 @@ class MainWindow(QMainWindow):
                 return
 
             self.populate_scroll_area()
-            self.select_all_button.setEnabled(True)
-            self.delete_selected_scenes_button.setEnabled(True)
+            self.activate_buttons()
             self.select_all_button.setText("Select All") # Reset the text of the select all button
 
     def save_project(self):
