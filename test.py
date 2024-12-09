@@ -1,15 +1,35 @@
-import os
+from PySide6.QtWidgets import QApplication, QWidget, QHBoxLayout, QVBoxLayout, QLabel, QCheckBox, QPushButton
 
-def add_string_to_basename(path, string):
-        # esempio: path = "C:/video.mp4", string = "_processed"
-        # output = "C:/video_processed.mp4"
-        base_name = os.path.basename(path)
-        base_name, extension = os.path.splitext(base_name)
-        res_name = base_name + string + extension
-        res_dir = os.path.dirname(path)
-        return os.path.join(res_dir, res_name)
+class MyWindow(QWidget):
+    def __init__(self):
+        super().__init__()
 
-path = "C:/video.mp4"
-string = "_processed"
-print(add_string_to_basename(path, string))
-# expected output: C:/video_processed.mp4
+        self.initUI()
+
+    def initUI(self):
+        self.layout = QVBoxLayout()
+
+        # Creazione di un layout orizzontale per la checkbox e la label
+        h_layout = QHBoxLayout()
+        self.checkbox = QCheckBox()
+        self.label = QLabel("Label vicino alla checkbox")
+        
+        # Aggiunta della checkbox e della label al layout orizzontale
+        h_layout.addWidget(self.checkbox)
+        h_layout.addWidget(self.label)
+
+        # Aggiunta del layout orizzontale al layout principale
+        self.layout.addLayout(h_layout)
+
+        # Aggiunta di un pulsante di esempio
+        self.button = QPushButton("Esempio Pulsante")
+        self.layout.addWidget(self.button)
+
+        self.setLayout(self.layout)
+        self.setWindowTitle('Checkbox vicino alla Label')
+        self.show()
+
+if __name__ == '__main__':
+    app = QApplication([])
+    window = MyWindow()
+    app.exec_()

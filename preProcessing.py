@@ -52,7 +52,9 @@ if __name__ == '__main__':
     homography_matrices, kps_court = court_detector.infer_model(frames)
 
     imgs_res = main(frames, scenes, homography_matrices)
+    num_imgs_res = len(imgs_res) # numero di scene risultanti
+    num_digits = len(str(num_imgs_res)) # numero di cifre del numero di scene risultanti
 
     for i in range(len(imgs_res)):
-        output_path = f"{args.path_output_video.split('.')[0]}_{i + 1}.mp4"
+        output_path = f"{args.path_output_video.split('.')[0]}_{str(i + 1).zfill(num_digits)}.mp4"
         write(imgs_res[i], fps, output_path)
