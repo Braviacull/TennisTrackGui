@@ -310,11 +310,19 @@ class MainWindow(QMainWindow):
             checkbox.setObjectName(scene_path)  # Usa il percorso della scena come nome dell'oggetto per l'identificazione
             checkbox.stateChanged.connect(self.on_checkbox_state_changed)
 
+            base_name = os.path.basename(scene_path)
+            base_name_label = QLabel(base_name)
+
+            container_labels = QWidget()
+            container_labels_layout = QVBoxLayout(container_labels)
+            container_labels_layout.addWidget(thumbnail_label)
+            container_labels_layout.addWidget(base_name_label)
+
             # Crea un widget contenitore per la miniatura e la checkbox
             container = QWidget()
             container_layout = QHBoxLayout(container)
             container_layout.addWidget(checkbox)
-            container_layout.addWidget(thumbnail_label)
+            container_layout.addWidget(container_labels)
 
             self.scroll_layout.addWidget(container)  # Aggiungi il contenitore al layout di scorrimento
 
