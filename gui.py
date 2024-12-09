@@ -102,7 +102,10 @@ class MainWindow(QMainWindow):
         self.scroll_area.resize(150, 150)
 
     def jolly(self):
-        for scene_path, thumbnail_path, container, selected in self.scene_data:
+        for data in self.scene_data:
+            scene_path = data[0]
+            thumbnail_path = data[1]
+            selected = data[3]
             base_name = os.path.basename(scene_path)
             base_name_thumb = os.path.basename(thumbnail_path)
             print(base_name + ", ", base_name_thumb + ", ", selected)
@@ -145,13 +148,15 @@ class MainWindow(QMainWindow):
 
     def get_selected_scenes(self):
         selected_scenes = []
-        for i, (_, _, _, selected) in enumerate(self.scene_data):
+        for i, data in enumerate(self.scene_data):
+            selected = data[3]
             if selected:
                 selected_scenes.append(self.scene_data[i])
         return selected_scenes
 
     def get_data_from_scene_data(self, scene_path):
-        for i, (path, thumbnail, label, selected) in enumerate(self.scene_data):
+        for i, data in enumerate(self.scene_data):
+            path = data[0]
             if path == scene_path:
                 return self.scene_data[i]
         print ("scene not found")
@@ -311,7 +316,9 @@ class MainWindow(QMainWindow):
             return
 
         updated_scene_data = []
-        for scene_path, thumbnail_path in self.scene_data:
+        for data in self.scene_data:
+            scene_path = data[0]
+            thumbnail_path = data[1]
             thumbnail_label = QLabel()
             thumbnail_label.setPixmap(QPixmap(thumbnail_path).scaled(100, 100, Qt.KeepAspectRatio))
             thumbnail_label.setContextMenuPolicy(Qt.CustomContextMenu)
@@ -369,7 +376,6 @@ class MainWindow(QMainWindow):
             output_path = self.add_string_to_basename(scene_path, "_processed")
             self.processings(scene_path, output_path)
             os.remove(scene_path)
-            os.remove(scene_path)
             os.rename(output_path, scene_path)
 
     def add_string_to_basename(self, path, string):
@@ -404,9 +410,12 @@ class MainWindow(QMainWindow):
         # if state == 2 checked, 0 unchecked, 1 partial checked
         checkbox = self.sender()
         scene_path = checkbox.objectName()
-        for i, (path, thumbnail, label, selected) in enumerate(self.scene_data):
+        for i, data in enumerate(self.scene_data):
+            path = data[0]
             if path == scene_path:
-                self.scene_data[i] = (path, thumbnail, label, state == 2)
+                thumbnail = data[1]
+                label = data[2]
+                self.scene_data[i] = (path, thumbnail, label, state == 2) # ATTENZIONE A SE CAMBIA LA STRUTTURA DI SELF.SCENE_DATA
                 print (self.scene_data[i][3])
                 break
         if state == 0:
@@ -420,7 +429,8 @@ class MainWindow(QMainWindow):
         elif self.select_all_button.text() == "Deselect All":
             self.select_all_button.setText("Select All")
             b = False
-        for (path, thumbnail, container, selected) in (self.scene_data):
+        for data in self.scene_data:
+            container = data[2]
             checkbox = container.findChild(QCheckBox)
             if checkbox:
                 checkbox.setChecked(b)
@@ -472,8 +482,12 @@ class MainWindow(QMainWindow):
     def delete_selected_scenes(self):
         # [:] itera su una copia della lista originale per evitare problemi di modifica durante l'iterazione
         # alla fine della funzione la lista originale viene sovrascritta con la copia modificata
-        for scene_path, thumbnail_path, container, selected in self.scene_data[:]:
+        for data in self.scene_data[:]:
+            selected = data[3]
             if selected:
+                scene_path = data[0]
+                thumbnail_path = data[1]
+                container = data[2]
                 label = container.findChild(QLabel)
                 checkbox = container.findChild(QCheckBox)
                 self.remove_scene(container, label, checkbox, scene_path, thumbnail_path)
@@ -486,6 +500,7 @@ class MainWindow(QMainWindow):
         self.media_player.setSource(QUrl())  # Imposta la sorgente a un URL vuoto per rilasciare il file
 
     def merge_scenes (self):
+        self.release_video()
         scenes_to_merge = self.get_selected_scenes()
         if scenes_to_merge is None:
             print("No scenes selected")
@@ -493,7 +508,8 @@ class MainWindow(QMainWindow):
         
         final_frames = []
         final_fps = None
-        for (scene_path, _, _, _) in scenes_to_merge: 
+        for data in scenes_to_merge: 
+            scene_path = data[0]
             frames, fps= read_video(scene_path)
             final_frames.extend(frames)
             if final_fps is None: # first iteration
