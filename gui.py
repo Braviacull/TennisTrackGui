@@ -2,13 +2,37 @@ from PySide6.QtMultimedia import QMediaPlayer
 from PySide6.QtMultimediaWidgets import QVideoWidget
 from PySide6.QtWidgets import QMainWindow, QWidget, QVBoxLayout, QPushButton, QScrollArea, QHBoxLayout, QFileDialog, QLabel, QApplication, QSplitter, QInputDialog, QMenu, QCheckBox
 from PySide6.QtGui import QPixmap
-from PySide6.QtCore import QUrl, Qt
+from PySide6.QtCore import QUrl, Qt, QThread
 from video_operations import read_video, write
 import os
 import cv2
 import sys
 import subprocess
 import shutil
+
+class ProcessingThread(QThread):
+    def __init__(self, scene_path, output_path):
+        super().__init__()
+        self.scene_path = scene_path
+        self.output_path = output_path
+
+    def run(self):
+        ball_model_path = "model_best.pt"
+        court_model_path = "model_tennis_court_det.pt"
+        bounce_model_path = "ctb_regr_bounce.cbm"
+
+        command = [
+            "python", "main.py",
+            "--path_ball_track_model", ball_model_path,
+            "--path_court_model", court_model_path,
+            "--path_bounce_model", bounce_model_path,
+            "--path_input_video", self.scene_path,
+            "--path_output_video", self.output_path
+        ]
+        subprocess.run(command)
+
+        os.remove(self.scene_path)
+        os.rename(self.output_path, self.scene_path)
 
 class MainWindow(QMainWindow):
     def __init__(self):
@@ -91,6 +115,9 @@ class MainWindow(QMainWindow):
 
         # Scene data
         self.scene_data = None # vettore che verrá popolato con tuple:(scene_path, thumbnail_path, container, selected)
+
+        # Gestione Threads
+        self.processing_threads = []
 
         # Create a scroll area for thumbnails
         self.scroll_area = QScrollArea()
@@ -374,9 +401,12 @@ class MainWindow(QMainWindow):
         elif action == process_action:
             self.release_video()
             output_path = self.add_string_to_basename(scene_path, "_processed")
-            self.processings(scene_path, output_path)
-            os.remove(scene_path)
-            os.rename(output_path, scene_path)
+            self.start_processing_thread(scene_path, output_path)
+
+    def start_processing_thread(self, scene_path, output_path):
+        processing_thread = ProcessingThread(scene_path, output_path)
+        self.processing_threads.append(processing_thread)  # Aggiungi il thread alla lista
+        processing_thread.start()
 
     def add_string_to_basename(self, path, string):
         # esempio: path = "C:/video.mp4", string = "_processed"
@@ -386,25 +416,6 @@ class MainWindow(QMainWindow):
         res_name = base_name + string + extension
         res_dir = os.path.dirname(path)
         return os.path.join(res_dir, res_name)
-
-    def processings(self, scene_path, output_path):
-        if not scene_path.endswith(".mp4") or not output_path.endswith(".mp4"):
-            print("Expected .mp4 files")
-            return
-        
-        ball_model_path = "model_best.pt"
-        court_model_path = "model_tennis_court_det.pt"
-        bounce_model_path = "ctb_regr_bounce.cbm"
-
-        command = [
-            "python", "main.py",
-            "--path_ball_track_model", ball_model_path,
-            "--path_court_model", court_model_path,
-            "--path_bounce_model" , bounce_model_path,
-            "--path_input_video", scene_path,
-            "--path_output_video", output_path
-        ]
-        subprocess.run(command)
 
     def on_checkbox_state_changed(self, state):
         # if state == 2 checked, 0 unchecked, 1 partial checked
