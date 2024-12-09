@@ -77,6 +77,13 @@ class MainWindow(QMainWindow):
         self.merge_scenes_button.setEnabled(False)
         self.buttons_to_activate.append(self.merge_scenes_button)
 
+        # Jolly button
+        self.jolly_button = QPushButton("Jolly")
+        self.jolly_button.clicked.connect(self.jolly)
+        self.layout.addWidget(self.jolly_button)
+        self.jolly_button.setEnabled(False)
+        self.buttons_to_activate.append(self.jolly_button)
+
         # Directories and paths
         self.project_path = None
         self.video_path = None
@@ -93,6 +100,12 @@ class MainWindow(QMainWindow):
         self.scroll_area.setWidget(self.scroll_content)
         self.splitter.addWidget(self.scroll_area)
         self.scroll_area.resize(150, 150)
+
+    def jolly(self):
+        for scene_path, thumbnail_path, container, selected in self.scene_data:
+            base_name = os.path.basename(scene_path)
+            base_name_thumb = os.path.basename(thumbnail_path)
+            print(base_name + ", ", base_name_thumb + ", ", selected)
 
     def obtain_input_dir(self):
         if not self.project_path:
@@ -207,6 +220,7 @@ class MainWindow(QMainWindow):
     def load_project(self):
         project_path = QFileDialog.getExistingDirectory(self, "Select Project Directory", "projects")
         if project_path:
+            self.release_video()
             self.project_path = project_path
 
             input_dir = self.obtain_input_dir()
@@ -348,10 +362,13 @@ class MainWindow(QMainWindow):
         if action == play_action:
             self.play_video(scene_path)
         elif action == delete_action:
+            self.release_video()
             self.remove_scene(container, label, checkbox, scene_path, thumbnail_path)
         elif action == process_action:
+            self.release_video()
             output_path = self.add_string_to_basename(scene_path, "_processed")
             self.processings(scene_path, output_path)
+            os.remove(scene_path)
             os.remove(scene_path)
             os.rename(output_path, scene_path)
 
@@ -465,6 +482,9 @@ class MainWindow(QMainWindow):
         self.media_player.setSource(QUrl.fromLocalFile(video_path))
         self.media_player.play()
 
+    def release_video(self):
+        self.media_player.setSource(QUrl())  # Imposta la sorgente a un URL vuoto per rilasciare il file
+
     def merge_scenes (self):
         scenes_to_merge = self.get_selected_scenes()
         if scenes_to_merge is None:
@@ -473,7 +493,7 @@ class MainWindow(QMainWindow):
         
         final_frames = []
         final_fps = None
-        for (scene_path, thumbnail_path, container, selected) in scenes_to_merge: 
+        for (scene_path, _, _, _) in scenes_to_merge: 
             frames, fps= read_video(scene_path)
             final_frames.extend(frames)
             if final_fps is None: # first iteration
@@ -489,15 +509,14 @@ class MainWindow(QMainWindow):
         os.remove(scenes_to_merge[0][0]) # remove the first scene
         write(final_frames, final_fps, scenes_to_merge[0][0])
 
-        res_scene = scenes_to_merge[0]
+        res_scene = scenes_to_merge[0] # previous first scene
 
-        # deselect the resulting scene
+        # deselect the res_scene
         container = res_scene[2]
         checkbox = container.findChild(QCheckBox)
         checkbox.setChecked(False)
 
         self.delete_selected_scenes()
-        print (self.scene_data)
 
     def clear_layout(self, layout):
         while layout.count():
