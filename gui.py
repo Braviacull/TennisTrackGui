@@ -63,13 +63,13 @@ class MainWindow(QMainWindow):
         self.media_player = QMediaPlayer()
         self.media_player.setVideoOutput(self.video_widget)
 
+        # Create a widget to hold the frame label and slider
         self.frames_and_slider = QWidget()
         self.frames_and_slider_layout = QHBoxLayout(self.frames_and_slider)
 
-
+        # Create a label to display the current frame
         self.frame_label = QLabel("Frame: 0")
         self.frames_and_slider_layout.addWidget(self.frame_label)
-
 
         # Create a slider for video position
         self.video_slider = QSlider(Qt.Horizontal)
