@@ -3,14 +3,13 @@ from PySide6.QtMultimediaWidgets import QVideoWidget
 from PySide6.QtWidgets import QMainWindow, QWidget, QVBoxLayout, QPushButton, QScrollArea, QHBoxLayout, QSlider, QFileDialog, QLabel, QApplication, QSplitter, QInputDialog, QMenu, QCheckBox
 from PySide6.QtGui import QPixmap
 from PySide6.QtCore import QUrl, Qt, QThread
-from video_operations import *
+from video_operations import write, read_video
 from obtain_directory import *
 import os
 import cv2
 import sys
 import subprocess
 import shutil
-from utils import scene_detect
 
 class ProcessingThread(QThread):
     def __init__(self, scene_path, output_path):
@@ -97,23 +96,11 @@ class MainWindow(QMainWindow):
         self.load_project_button.clicked.connect(self.load_project)
         self.layout.addWidget(self.load_project_button)
 
-        # Jolly button
-        self.jolly_button = QPushButton("Jolly")
-        # self.jolly_button.clicked.connect(self.jolly)
-        self.layout.addWidget(self.jolly_button)
-        self.jolly_button.setEnabled(False)
-        self.buttons_to_activate.append(self.jolly_button)
-
         # Directories and paths
         self.project_path = None
         self.base_name = None  # path del video pre-processato
         self.scene_file_path = None  # path del file scenes.txt
-
-        # # ANDRÁ SOSTITUITO CON UNA LISTA DI SCENE (first frame, last frame, path, thumbnail, container, selected)
-        # # Scene data
-        # self.scene_data = None # vettore che verrá popolato con tuple:(scene_path, thumbnail_path, container, selected)
-
-        self.scenes = [] # vettore di vettori [start_frame, end_frame]
+        self.macro_scenes = [] # vettore di vettori [[start_frame, end_frame] [button]]
 
         # Gestione Threads
         self.processing_threads = []
@@ -190,6 +177,11 @@ class MainWindow(QMainWindow):
                 print("Invalid project directory")
                 return
             
+            # Check if the output directory contains video files
+            if not self.base_name:
+                print("No video files found in the output directory")
+                return
+            
             # Check if the input and output directories exist
             if not os.path.exists(obtain_input_dir(self)):
                 print (obtain_input_dir(self))
@@ -201,8 +193,8 @@ class MainWindow(QMainWindow):
                 return
 
             last_frame = 0 # used to set the range of the video slider
-            # create scenes [[start_frame, end_frame]] removing gaps
-            self.scenes = [] # in this way, if you load more than once, the scenes are not appended
+            # create macro_scenes [[[start_frame, end_frame], here there will be the button and other things]] removing gaps
+            self.macro_scenes = [] # in this way, if you load more than once, the macro_scenes are not appended
             with open(self.scene_file_path, "r") as scene_file:
                 base = 0	
                 for line in scene_file:
@@ -219,18 +211,30 @@ class MainWindow(QMainWindow):
 
                     base = end + 1
                     last_frame = end
-                    self.scenes.append([start, end])
-
-            if not self.base_name:
-                print("No video files found in the output directory")
-                return
-            
-            print (self.scenes)
+                    self.macro_scenes.append([[start, end]])
 
             self.video_slider.setRange(0, last_frame)
 
+            # crea dei bottoni per ogni scena e li aggiunge in self.macro_scenes
+            self.clear_layout(self.scroll_layout)
+            for macro_scene in self.macro_scenes:
+                start = macro_scene[0][0]
+                end = macro_scene[0][1]
+                button = QPushButton(f"{start}-{end}")
+                macro_scene.append(button)
+                button.clicked.connect(self.play_macro_scene)
+                self.scroll_layout.addWidget(button)
 
+    def clear_layout(self, layout):
+        while layout.count():
+            child = layout.takeAt(0)
+            if child.widget():
+                child.widget().deleteLater()
 
+    def play_macro_scene(self):
+        button = self.sender()
+        macro_scene_index = self.scroll_layout.indexOf(button)
+        print (macro_scene_index)
 
 # Create the application and main window, then run the application
 app = QApplication(sys.argv)
