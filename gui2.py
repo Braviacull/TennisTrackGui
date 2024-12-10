@@ -149,6 +149,7 @@ class MainWindow(QMainWindow):
             print("Project already exists, CHOOSE ANOTHER NAME FOR YOUR PROJECT")
             return
         if ok and project_name:
+            self.project_path = project_path
             inputs_dir = os.path.join(os.path.dirname("Projects"), "Inputs")
             input_video_path = QFileDialog.getOpenFileName(self, "Open Video File", inputs_dir, "Video Files (*.mp4 *.avi *.mov)")[0]
 
