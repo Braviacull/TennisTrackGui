@@ -1,4 +1,5 @@
-from PySide6.QtWidgets import QApplication, QWidget, QHBoxLayout, QVBoxLayout, QLabel, QCheckBox, QPushButton
+from PySide6.QtWidgets import QApplication, QWidget, QVBoxLayout, QLabel, QSlider
+from PySide6.QtCore import Qt
 
 class MyWindow(QWidget):
     def __init__(self):
@@ -9,25 +10,30 @@ class MyWindow(QWidget):
     def initUI(self):
         self.layout = QVBoxLayout()
 
-        # Creazione di un layout orizzontale per la checkbox e la label
-        h_layout = QHBoxLayout()
-        self.checkbox = QCheckBox()
-        self.label = QLabel("Label vicino alla checkbox")
+        # Creazione di un QSlider
+        self.slider = QSlider(Qt.Horizontal)
+        self.slider.setMinimum(0)
+        self.slider.setMaximum(100)
+        self.slider.setValue(0)
+        # self.slider.setTickPosition(QSlider.TicksBelow)
+        # self.slider.setTickInterval(10)
+
+        # Creazione di una QLabel per mostrare il valore del QSlider
+        self.label = QLabel("Valore: 0")
         
-        # Aggiunta della checkbox e della label al layout orizzontale
-        h_layout.addWidget(self.checkbox)
-        h_layout.addWidget(self.label)
+        # Collegamento del segnale valueChanged del QSlider a uno slot
+        self.slider.valueChanged.connect(self.updateLabel)
 
-        # Aggiunta del layout orizzontale al layout principale
-        self.layout.addLayout(h_layout)
-
-        # Aggiunta di un pulsante di esempio
-        self.button = QPushButton("Esempio Pulsante")
-        self.layout.addWidget(self.button)
+        # Aggiunta del QSlider e della QLabel al layout
+        self.layout.addWidget(self.slider)
+        self.layout.addWidget(self.label)
 
         self.setLayout(self.layout)
-        self.setWindowTitle('Checkbox vicino alla Label')
+        self.setWindowTitle('QSlider Example')
         self.show()
+
+    def updateLabel(self, value):
+        self.label.setText(f"Valore: {value}")
 
 if __name__ == '__main__':
     app = QApplication([])

@@ -1,6 +1,6 @@
 from PySide6.QtMultimedia import QMediaPlayer
 from PySide6.QtMultimediaWidgets import QVideoWidget
-from PySide6.QtWidgets import QMainWindow, QWidget, QVBoxLayout, QPushButton, QScrollArea, QHBoxLayout, QFileDialog, QLabel, QApplication, QSplitter, QInputDialog, QMenu, QCheckBox
+from PySide6.QtWidgets import QMainWindow, QWidget, QVBoxLayout, QPushButton, QScrollArea, QHBoxLayout, QSlider, QFileDialog, QLabel, QApplication, QSplitter, QInputDialog, QMenu, QCheckBox
 from PySide6.QtGui import QPixmap
 from PySide6.QtCore import QUrl, Qt, QThread
 from video_operations import read_video, write
@@ -62,6 +62,22 @@ class MainWindow(QMainWindow):
         # Create a media player
         self.media_player = QMediaPlayer()
         self.media_player.setVideoOutput(self.video_widget)
+
+        self.frames_and_slider = QWidget()
+        self.frames_and_slider_layout = QHBoxLayout(self.frames_and_slider)
+
+
+        self.frame_label = QLabel("Frame: 0")
+        self.frames_and_slider_layout.addWidget(self.frame_label)
+
+
+        # Create a slider for video position
+        self.video_slider = QSlider(Qt.Horizontal)
+        self.video_slider.setRange(0, 0)
+        self.frames_and_slider_layout.addWidget(self.video_slider)
+        self.video_slider.valueChanged.connect(self.update_frame_label)
+
+        self.splitter.addWidget(self.frames_and_slider)
 
         self.buttons_to_activate = []
 
@@ -136,6 +152,9 @@ class MainWindow(QMainWindow):
             base_name = os.path.basename(scene_path)
             base_name_thumb = os.path.basename(thumbnail_path)
             print(base_name + ", ", base_name_thumb + ", ", selected)
+
+    def update_frame_label(self, value):
+        self.frame_label.setText(f"Frame: {value}")
 
     def obtain_input_dir(self):
         if not self.project_path:
@@ -247,8 +266,27 @@ class MainWindow(QMainWindow):
             if video_path:
                 shutil.copy(video_path, os.path.join(self.obtain_input_dir(), os.path.basename(video_path)))
                 self.video_path = os.path.join(self.obtain_input_dir(), os.path.basename(video_path))
+                num_frames = self.get_frame_count(self.video_path)
+                self.video_slider.setRange(0, num_frames)
                 self.create_scenes()
                 self.activate_buttons()
+
+    def get_frame_count(self, video_path):
+        # Apri il video
+        cap = cv2.VideoCapture(video_path)
+        
+        # Controlla se il video è stato aperto correttamente
+        if not cap.isOpened():
+            print(f"Errore nell'apertura del video: {video_path}")
+            return None
+        
+        # Ottieni il numero di frame
+        frame_count = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+        
+        # Rilascia il video
+        cap.release()
+        
+        return frame_count
 
     def load_project(self):
         project_path = QFileDialog.getExistingDirectory(self, "Select Project Directory", "projects")
@@ -289,6 +327,9 @@ class MainWindow(QMainWindow):
                 self.video_path = None
                 return
 
+
+            num_frames = self.get_frame_count(self.video_path)
+            self.video_slider.setRange(0, num_frames)
             self.populate_scroll_area()
             self.activate_buttons()
             self.select_all_button.setText("Select All") # Reset the text of the select all button
