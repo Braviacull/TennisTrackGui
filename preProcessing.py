@@ -24,7 +24,8 @@ def main(frames, scenes, homography_matrices):
         eps = 1e-15
         scene_rate = sum_track / (len_track + eps)
         if (scene_rate > 0.5):
-            imgs_res.append(frames[scenes[num_scene][0]:scenes[num_scene][1]])
+            # imgs_res.append(frames[scenes[num_scene][0]:scenes[num_scene][1]]) VECCHIA VERSIONE DI QUANDO SI LAVORAVA SU PIU' SCENE
+            imgs_res.extend(frames[scenes[num_scene][0]:scenes[num_scene][1]])
 
         else:
             scene_scartate += 1
@@ -55,6 +56,12 @@ if __name__ == '__main__':
     num_imgs_res = len(imgs_res) # numero di scene risultanti
     num_digits = len(str(num_imgs_res)) # numero di cifre del numero di scene risultanti
 
-    for i in range(len(imgs_res)):
-        output_path = f"{args.path_output_video.split('.')[0]}_{str(i + 1).zfill(num_digits)}.mp4"
-        write(imgs_res[i], fps, output_path)
+
+    # VECCHIA VERSIONE DI QUANDO SI LAVORAVA SU PIU' SCENE
+    # for i in range(len(imgs_res)):
+    #     output_path = f"{args.path_output_video.split('.')[0]}_{str(i + 1).zfill(num_digits)}.mp4"
+    #     write(imgs_res[i], fps, output_path)
+
+    write(imgs_res, fps, args.path_output_video)
+
+    

@@ -234,7 +234,8 @@ class MainWindow(QMainWindow):
             return
         elif ok and project_name:
             self.project_path = project_path
-            video_path = QFileDialog.getOpenFileName(self, "Open Video File", "", "Video Files (*.mp4 *.avi *.mov)")[0]
+            inputs_dir = os.path.join(os.path.dirname(self.projects_directory), "Inputs")
+            video_path = QFileDialog.getOpenFileName(self, "Open Video File", inputs_dir, "Video Files (*.mp4 *.avi *.mov)")[0]
             os.makedirs(self.obtain_input_dir(), exist_ok=True)
             os.makedirs(self.obtain_output_dir(), exist_ok=True)
             os.makedirs(self.obtain_thumbnails_dir(), exist_ok=True)
