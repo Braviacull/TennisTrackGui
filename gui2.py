@@ -3,9 +3,8 @@ from PySide6.QtMultimediaWidgets import QVideoWidget
 from PySide6.QtWidgets import QMainWindow, QWidget, QVBoxLayout, QPushButton, QScrollArea, QHBoxLayout, QSlider, QFileDialog, QLabel, QApplication, QSplitter, QInputDialog, QMenu, QCheckBox
 from PySide6.QtGui import QPixmap
 from PySide6.QtCore import QUrl, Qt, QThread
-from video_operations import read_video, write
+from video_operations import *
 from obtain_directory import *
-from slider import *
 import os
 import cv2
 import sys
@@ -77,7 +76,7 @@ class MainWindow(QMainWindow):
         self.video_slider = QSlider(Qt.Horizontal)
         self.video_slider.setRange(0, 0)
         self.frames_and_slider_layout.addWidget(self.video_slider)
-        # self.video_slider.valueChanged.connect(self.update_frame_label)
+        self.video_slider.valueChanged.connect(self.update_frame_label)
 
         # Add the frame label and slider widget to the splitter
         self.splitter.addWidget(self.frames_and_slider)
@@ -94,7 +93,7 @@ class MainWindow(QMainWindow):
 
         # Load project button
         self.load_project_button = QPushButton("Load Project")
-        # self.load_project_button.clicked.connect(self.load_project)
+        self.load_project_button.clicked.connect(self.load_project)
         self.layout.addWidget(self.load_project_button)
 
         # Jolly button
@@ -106,8 +105,6 @@ class MainWindow(QMainWindow):
 
         # Directories and paths
         self.project_path = None
-        self.base_name = None
-
 
         # ANDRÁ SOSTITUITO CON UNA LISTA DI SCENE (first frame, last frame, path, thumbnail, container, selected)
         # Scene data
@@ -124,6 +121,9 @@ class MainWindow(QMainWindow):
         self.scroll_area.setWidget(self.scroll_content)
         self.splitter.addWidget(self.scroll_area)
         self.scroll_area.resize(150, 150)
+
+    def update_frame_label(self, value):
+        self.frame_label.setText(f"Frame: {value}")
 
     def pre_processing(self, base_name):
         input_path = os.path.join(obtain_input_dir(self), base_name)
@@ -149,8 +149,7 @@ class MainWindow(QMainWindow):
             print("Project already exists, CHOOSE ANOTHER NAME FOR YOUR PROJECT")
             return
         if ok and project_name:
-            self.project_path = project_path
-            inputs_dir = os.path.join(os.path.dirname("Projects", "Inputs"))
+            inputs_dir = os.path.join(os.path.dirname("Projects"), "Inputs")
             input_video_path = QFileDialog.getOpenFileName(self, "Open Video File", inputs_dir, "Video Files (*.mp4 *.avi *.mov)")[0]
 
             # Create project directories
@@ -161,9 +160,35 @@ class MainWindow(QMainWindow):
                 shutil.copy(input_video_path, obtain_input_dir(self))
                 base_name = os.path.basename(input_video_path)
                 self.pre_processing(base_name)
+                self.load_project(project_path)
 
+    def load_project(self, project_path=None):
+        if not project_path:
+            project_path = QFileDialog.getExistingDirectory(self, "Select Project Directory", "projects")
+        if project_path:
+            if not os.path.abspath(os.path.dirname(project_path)) == os.path.abspath("Projects"):
+                print("Invalid project directory")
+                return
 
+            self.project_path = project_path
 
+            # Check if the input and output directories exist
+            if not os.path.exists(obtain_input_dir(self)):
+                print(f"Input directory does not exists")
+                return
+
+            if not os.path.exists(obtain_output_dir(self)):
+                print(f"Output directory does not exists")
+                return
+
+            base_name = os.listdir(obtain_output_dir(self))[0]
+            if not base_name:
+                print("No video files found in the output directory")
+                return
+            video_path = os.path.join(obtain_output_dir(self), base_name)
+
+            num_frames = get_frame_count(video_path)
+            self.video_slider.setRange(0, num_frames)
 
 # Create the application and main window, then run the application
 app = QApplication(sys.argv)
