@@ -145,7 +145,7 @@ if __name__ == '__main__':
     
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
     frames, fps = read_video(args.path_input_video) 
-    scenes = scene_detect(args.path_input_video)    
+    scenes = scene_detect(args.path_input_video) 
 
     print('ball detection')
     ball_detector = BallDetector(args.path_ball_track_model, device)

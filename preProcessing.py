@@ -24,8 +24,9 @@ def main(frames, scenes, homography_matrices):
         eps = 1e-15
         scene_rate = sum_track / (len_track + eps)
         if (scene_rate > 0.5):
-            # imgs_res.append(frames[scenes[num_scene][0]:scenes[num_scene][1]]) VECCHIA VERSIONE DI QUANDO SI LAVORAVA SU PIU' SCENE
             imgs_res.extend(frames[scenes[num_scene][0]:scenes[num_scene][1]])
+            with open(args.path_scene_file, 'a') as scene_file:
+                scene_file.write(f"{scenes[num_scene][0]} {scenes[num_scene][1]}\n")
 
         else:
             scene_scartate += 1
@@ -39,6 +40,7 @@ if __name__ == '__main__':
     parser.add_argument('--path_court_model', type=str, help='path to pretrained model for court detection')
     parser.add_argument('--path_input_video', type=str, help='path to input video')
     parser.add_argument('--path_output_video', type=str, help='path to output video')
+    parser.add_argument('--path_scene_file', type=str, help='path to scenes.txt file')
     args = parser.parse_args()
 
     device = 'cuda' if torch.cuda.is_available() else 'cpu'

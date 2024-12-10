@@ -3,12 +3,14 @@ from PySide6.QtMultimediaWidgets import QVideoWidget
 from PySide6.QtWidgets import QMainWindow, QWidget, QVBoxLayout, QPushButton, QScrollArea, QHBoxLayout, QSlider, QFileDialog, QLabel, QApplication, QSplitter, QInputDialog, QMenu, QCheckBox
 from PySide6.QtGui import QPixmap
 from PySide6.QtCore import QUrl, Qt, QThread
-from video_operations import read_video, write
+from video_operations import *
+from obtain_directory import *
 import os
 import cv2
 import sys
 import subprocess
 import shutil
+from utils import scene_detect
 
 class ProcessingThread(QThread):
     def __init__(self, scene_path, output_path):
@@ -77,9 +79,13 @@ class MainWindow(QMainWindow):
         self.frames_and_slider_layout.addWidget(self.video_slider)
         self.video_slider.valueChanged.connect(self.update_frame_label)
 
+        # Add the frame label and slider widget to the splitter
         self.splitter.addWidget(self.frames_and_slider)
 
+        # Create a list of buttons to activate
         self.buttons_to_activate = []
+
+        # BUTTONS
 
         # New project button
         self.new_project_button = QPushButton("New Project")
@@ -91,46 +97,22 @@ class MainWindow(QMainWindow):
         self.load_project_button.clicked.connect(self.load_project)
         self.layout.addWidget(self.load_project_button)
 
-        # Save project button
-        self.save_project_button = QPushButton("Save Project")
-        self.save_project_button.clicked.connect(self.save_project)
-        self.layout.addWidget(self.save_project_button)
-
-        # Select all button
-        self.select_all_button = QPushButton("Select All")
-        self.select_all_button.clicked.connect(self.select_all_checkboxes)
-        self.layout.addWidget(self.select_all_button)
-        self.select_all_button.setEnabled(False)
-        self.buttons_to_activate.append(self.select_all_button)
-
-        # Delete selected scenes button
-        self.delete_selected_scenes_button = QPushButton("Delete Selected Scenes")
-        self.delete_selected_scenes_button.clicked.connect(self.delete_selected_scenes)
-        self.layout.addWidget(self.delete_selected_scenes_button)
-        self.delete_selected_scenes_button.setEnabled(False)
-        self.buttons_to_activate.append(self.delete_selected_scenes_button)
-
-        # Merge scenes button
-        self.merge_scenes_button = QPushButton("Merge Scenes")
-        self.merge_scenes_button.clicked.connect(self.merge_scenes)
-        self.layout.addWidget(self.merge_scenes_button)
-        self.merge_scenes_button.setEnabled(False)
-        self.buttons_to_activate.append(self.merge_scenes_button)
-
         # Jolly button
         self.jolly_button = QPushButton("Jolly")
-        self.jolly_button.clicked.connect(self.jolly)
+        # self.jolly_button.clicked.connect(self.jolly)
         self.layout.addWidget(self.jolly_button)
         self.jolly_button.setEnabled(False)
         self.buttons_to_activate.append(self.jolly_button)
 
         # Directories and paths
         self.project_path = None
-        self.video_path = None
-        self.projects_directory = os.path.abspath("Projects")
+        self.base_name = None  # path del video pre-processato
 
-        # Scene data
-        self.scene_data = None # vettore che verrá popolato con tuple:(scene_path, thumbnail_path, container, selected)
+        # # ANDRÁ SOSTITUITO CON UNA LISTA DI SCENE (first frame, last frame, path, thumbnail, container, selected)
+        # # Scene data
+        # self.scene_data = None # vettore che verrá popolato con tuple:(scene_path, thumbnail_path, container, selected)
+
+        self.scenes = [] # vettore di vettori [start_frame, end_frame]
 
         # Gestione Threads
         self.processing_threads = []
@@ -144,454 +126,104 @@ class MainWindow(QMainWindow):
         self.splitter.addWidget(self.scroll_area)
         self.scroll_area.resize(150, 150)
 
-    def jolly(self):
-        for data in self.scene_data:
-            scene_path = data[0]
-            thumbnail_path = data[1]
-            selected = data[3]
-            base_name = os.path.basename(scene_path)
-            base_name_thumb = os.path.basename(thumbnail_path)
-            print(base_name + ", ", base_name_thumb + ", ", selected)
-
     def update_frame_label(self, value):
         self.frame_label.setText(f"Frame: {value}")
 
-    def obtain_input_dir(self):
-        if not self.project_path:
-            print("No project loaded")
+    def pre_processing(self, base_name, scene_file_path):
+        input_path = os.path.join(obtain_input_dir(self), base_name)
+        output_path = os.path.join(obtain_output_dir(self), base_name)
+        if not os.path.isfile(input_path):
+            print("Input file not found")
             return
-        return os.path.join(self.project_path, "input")
-
-    def obtain_output_dir(self):
-        if not self.project_path:
-            print("No project loaded")
-            return
-        return os.path.join(self.project_path, "output")
-
-    def obtain_thumbnails_dir(self):
-        if not self.project_path:
-            print("No project loaded")
-            return
-        return os.path.join(self.project_path, "thumbnails")
-
-    def obtain_tmp_dir(self):
-        if not self.project_path:
-            print("No project loaded")
-            return
-        return os.path.join(self.project_path, "tmp")
-    
-    def obtain_tmp_output_dir(self):
-        if not self.project_path:
-            print("No project loaded")
-            return
-        return os.path.join(self.obtain_tmp_dir(), "output")
-    
-    def obtain_tmp_thumbnails_dir(self):
-        if not self.project_path:
-            print("No project loaded")
-            return
-        return os.path.join(self.obtain_tmp_dir(), "thumbnails")
-
-    def get_selected_scenes(self):
-        selected_scenes = []
-        for i, data in enumerate(self.scene_data):
-            selected = data[3]
-            if selected:
-                selected_scenes.append(self.scene_data[i])
-        return selected_scenes
-
-    def get_data_from_scene_data(self, scene_path):
-        for i, data in enumerate(self.scene_data):
-            path = data[0]
-            if path == scene_path:
-                return self.scene_data[i]
-        print ("scene not found")
-
-    def create_scenes(self):
-        self.pre_processing()
-        self.copy_folder_to_folder(self.obtain_output_dir(), self.obtain_tmp_output_dir())
-        self.populate_scroll_area()
-
-    def pre_processing(self):
-        if not self.video_path:
-            print("No video file in input directory")
-            return
-        output_path = os.path.join(self.obtain_output_dir(), "output_video.mp4")
         model_path = "model_tennis_court_det.pt"
+        if not os.path.isfile(model_path):
+            print("Model file not found")
         command = [
             "python", "preProcessing.py",
             "--path_court_model", model_path,
-            "--path_input_video", self.video_path,
-            "--path_output_video", output_path
+            "--path_input_video", input_path,
+            "--path_output_video", output_path,
+            "--path_scene_file", scene_file_path
         ]
         subprocess.run(command)
 
-    def populate_scroll_area(self):
-        self.create_thumbnails()
-        self.copy_folder_to_folder(self.obtain_tmp_thumbnails_dir(), self.obtain_thumbnails_dir())
-        self.add_widgets_to_scroll_layout()
-
-    def copy_folder_to_folder(self, source, destination):
-        # empty the destination folder
-        for file in os.listdir(destination):
-            file_path = os.path.join(destination, file)
-            os.remove(file_path)
-        # copy the files from the source folder to the destination folder
-        for file in os.listdir(source):
-            file_path = os.path.join(source, file)
-            shutil.copy(file_path, os.path.join(destination, file))
-
-    def activate_buttons(self):
-        for button in self.buttons_to_activate:
-            button.setEnabled(True)
 
     def create_new_project(self):
         project_name, ok = QInputDialog.getText(self, "New Project", "Enter project name:")
-        project_path = os.path.join(self.projects_directory, project_name)
+        project_path = os.path.join("Projects", project_name)
         if os.path.isdir(project_path) and ok:
             print("Project already exists, CHOOSE ANOTHER NAME FOR YOUR PROJECT")
             return
-        elif ok and project_name:
+        if ok and project_name:
             self.project_path = project_path
-            inputs_dir = os.path.join(os.path.dirname(self.projects_directory), "Inputs")
-            video_path = QFileDialog.getOpenFileName(self, "Open Video File", inputs_dir, "Video Files (*.mp4 *.avi *.mov)")[0]
-            os.makedirs(self.obtain_input_dir(), exist_ok=True)
-            os.makedirs(self.obtain_output_dir(), exist_ok=True)
-            os.makedirs(self.obtain_thumbnails_dir(), exist_ok=True)
-            # it is not necessary to create a temporary folder for the input (because it is never modified)
-            os.makedirs(self.obtain_tmp_dir(), exist_ok=True)
-            os.makedirs(self.obtain_tmp_output_dir(), exist_ok=True)
-            os.makedirs(self.obtain_tmp_thumbnails_dir(), exist_ok=True)
+            inputs_dir = os.path.join(os.path.dirname("Projects"), "Inputs")
+            input_video_path = QFileDialog.getOpenFileName(self, "Open Video File", inputs_dir, "Video Files (*.mp4 *.avi *.mov)")[0]
 
-            if video_path:
-                shutil.copy(video_path, os.path.join(self.obtain_input_dir(), os.path.basename(video_path)))
-                self.video_path = os.path.join(self.obtain_input_dir(), os.path.basename(video_path))
-                num_frames = self.get_frame_count(self.video_path)
-                self.video_slider.setRange(0, num_frames)
-                self.create_scenes()
-                self.activate_buttons()
+            # Create project directories
+            os.makedirs(obtain_input_dir(self), exist_ok=True)
+            os.makedirs(obtain_output_dir(self), exist_ok=True)
 
-    def get_frame_count(self, video_path):
-        # Apri il video
-        cap = cv2.VideoCapture(video_path)
-        
-        # Controlla se il video è stato aperto correttamente
-        if not cap.isOpened():
-            print(f"Errore nell'apertura del video: {video_path}")
-            return None
-        
-        # Ottieni il numero di frame
-        frame_count = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
-        
-        # Rilascia il video
-        cap.release()
-        
-        return frame_count
+            scene_file_path = os.path.join(self.project_path, "scenes.txt")
+            # crea il file scenes.txt
+            with open(scene_file_path, "w") as scene_file:
+                pass
 
-    def load_project(self):
-        project_path = QFileDialog.getExistingDirectory(self, "Select Project Directory", "projects")
+            if input_video_path:
+                shutil.copy(input_video_path, obtain_input_dir(self))
+                self.base_name = os.path.basename(input_video_path)
+                self.pre_processing(self.base_name, scene_file_path)
+                
+                # create scenes [[start_frame, end_frame]] removing gaps
+                with open(scene_file_path, "r") as scene_file:
+                    base = 0	
+                    for line in scene_file:
+                        start, end = map(int, line.split())
+                        if start == base:
+                            pass # no gap
+                        elif start < base:
+                            print("Invalid scene detected")
+                            return
+                        elif start > base:
+                            gap = start - base
+                            start -= gap # == base
+                            end -= gap
+
+                        base = end + 1
+                        self.scenes.append([start, end])
+
+                print (self.scenes)
+                self.load_project(project_path)
+
+    def load_project(self, project_path=None):
+        if not project_path:
+            project_path = QFileDialog.getExistingDirectory(self, "Select Project Directory", "projects")
         if project_path:
-            self.release_video()
+            if not os.path.abspath(os.path.dirname(project_path)) == os.path.abspath("Projects"):
+                print("Invalid project directory")
+                return
+
             self.project_path = project_path
 
-            input_dir = self.obtain_input_dir()
-            output_dir = self.obtain_output_dir()
-            thumbnails_dir = self.obtain_thumbnails_dir()
-
-            # Copy the project folders to the temporary folders so that if the modification were not saved the original project is not modified
-            self.copy_folder_to_folder(output_dir, self.obtain_tmp_output_dir())
-            self.copy_folder_to_folder(thumbnails_dir, self.obtain_tmp_thumbnails_dir())
-
-            # Check if the input, output, and thumbnail directories exist
-            if not os.path.exists(input_dir):
-                print(f"Input directory does not exist: {input_dir}")
+            # Check if the input and output directories exist
+            if not os.path.exists(obtain_input_dir(self)):
+                print(f"Input directory does not exists")
                 return
 
-            if not os.path.exists(output_dir):
-                print(f"Output directory does not exist: {output_dir}")
+            if not os.path.exists(obtain_output_dir(self)):
+                print(f"Output directory does not exists")
                 return
 
-            if not os.path.exists(thumbnails_dir):
-                print(f"Thumbnail directory does not exist: {thumbnails_dir}")
+            base_name = os.listdir(obtain_output_dir(self))[0]
+            if not base_name:
+                print("No video files found in the output directory")
                 return
+            video_path = os.path.join(obtain_output_dir(self), base_name)
 
-            video_files = os.listdir(input_dir)
-            if not video_files:
-                print("No video files found in the input directory")
-                self.video_path = None
-                return
-
-            self.video_path = os.path.join(input_dir, video_files[0])
-            if not os.path.exists(self.video_path):
-                print("No video file found in the input directory")
-                self.video_path = None
-                return
+            num_frames = get_frame_count(video_path)
+            self.video_slider.setRange(0, num_frames+1)
 
 
-            num_frames = self.get_frame_count(self.video_path)
-            self.video_slider.setRange(0, num_frames)
-            self.populate_scroll_area()
-            self.activate_buttons()
-            self.select_all_button.setText("Select All") # Reset the text of the select all button
 
-    def save_project(self):
-        print("Saving project")
-        self.copy_folder_to_folder(self.obtain_tmp_output_dir(), self.obtain_output_dir())
-        self.copy_folder_to_folder(self.obtain_tmp_thumbnails_dir(), self.obtain_thumbnails_dir())
-        print("Project saved")
-
-    def create_thumbnails(self):
-        print("Creating thumbnails")
-        if not self.project_path:
-            print("function create_thumbnails says there is no project loaded")
-            return
-
-        tmp_output_dir = self.obtain_tmp_output_dir()
-        tmp_thumbnails_dir = self.obtain_tmp_thumbnails_dir()
-
-        output_list = []
-        thumbnails_list = []
-
-        if not os.path.exists(tmp_thumbnails_dir):
-            print("Thumbnails directory does not exists")
-            return
-
-        for scene in os.listdir(tmp_output_dir):
-            if scene.endswith(".mp4"):
-                scene_path = os.path.join(tmp_output_dir, scene)
-                cap = cv2.VideoCapture(scene_path)
-                ret, frame = cap.read()
-                if ret:
-                    print(f"Creating thumbnail for {scene}")
-                    thumbnail_path = os.path.join(tmp_thumbnails_dir, os.path.splitext(scene)[0] + "_thumbnail.jpg")
-                    cv2.imwrite(thumbnail_path, frame)
-                    print(f"Thumbnail created at {thumbnail_path}")
-                    # Add the path of the video to the list
-                    output_list.append(scene_path)
-                    # Add the path of the thumbnail to the list
-                    thumbnails_list.append(thumbnail_path)
-                else:
-                    print(f"Failed to read frame from {scene_path}")
-                cap.release()
-
-        self.scene_data = list(zip(output_list, thumbnails_list))
-
-    def add_widgets_to_scroll_layout(self):
-        print("Adding scene thumbnails to scroll layout")
-        self.clear_layout(self.scroll_layout)
-
-        if self.scene_data is None:
-            print("scene_data is None, devi chiamare self.populate_scroll_area() prima")
-            return
-
-        updated_scene_data = []
-        for data in self.scene_data:
-            scene_path = data[0]
-            thumbnail_path = data[1]
-            thumbnail_label = QLabel()
-            thumbnail_label.setPixmap(QPixmap(thumbnail_path).scaled(100, 100, Qt.KeepAspectRatio))
-            thumbnail_label.setContextMenuPolicy(Qt.CustomContextMenu)
-            thumbnail_label.customContextMenuRequested.connect(
-                lambda pos, s_path=scene_path: self.show_context_menu(pos, s_path)
-            )
-
-            # Aggiungi una QCheckBox per la selezione
-            checkbox = QCheckBox()
-            checkbox.setObjectName(scene_path)  # Usa il percorso della scena come nome dell'oggetto per l'identificazione
-            checkbox.stateChanged.connect(self.on_checkbox_state_changed)
-
-            base_name = os.path.basename(scene_path)
-            base_name_label = QLabel(base_name)
-
-            container_labels = QWidget()
-            container_labels_layout = QVBoxLayout(container_labels)
-            container_labels_layout.addWidget(thumbnail_label)
-            container_labels_layout.addWidget(base_name_label)
-
-            # Crea un widget contenitore per la miniatura e la checkbox
-            container = QWidget()
-            container_layout = QHBoxLayout(container)
-            container_layout.addWidget(checkbox)
-            container_layout.addWidget(container_labels)
-
-            self.scroll_layout.addWidget(container)  # Aggiungi il contenitore al layout di scorrimento
-
-            # Aggiorna la tupla aggiungendo il container dei widget e un attributo booleano per la selezione (checkbox)
-            updated_scene_data.append((scene_path, thumbnail_path, container, False))
-
-        self.scene_data = updated_scene_data
-
-    def show_context_menu(self, pos, scene_path):
-        menu = QMenu(self)
-        play_action = menu.addAction("Play")
-        delete_action = menu.addAction("Delete")
-        process_action = menu.addAction("Process")
-
-        data = self.get_data_from_scene_data(scene_path)
-        thumbnail_path = data[1]
-        container = data[2]
-        label = container.findChild(QLabel)
-        checkbox = container.findChild(QCheckBox)
-
-        global_pos = label.mapToGlobal(pos) # Ottieni la posizione globale del click
-        action = menu.exec(global_pos)
-        if action == play_action:
-            self.play_video(scene_path)
-        elif action == delete_action:
-            self.release_video()
-            self.remove_scene(container, label, checkbox, scene_path, thumbnail_path)
-        elif action == process_action:
-            self.release_video()
-            output_path = self.add_string_to_basename(scene_path, "_processed")
-            self.start_processing_thread(scene_path, output_path)
-
-    def start_processing_thread(self, scene_path, output_path):
-        processing_thread = ProcessingThread(scene_path, output_path)
-        self.processing_threads.append(processing_thread)  # Aggiungi il thread alla lista
-        processing_thread.start()
-
-    def add_string_to_basename(self, path, string):
-        # esempio: path = "C:/video.mp4", string = "_processed"
-        # output = "C:/video_processed.mp4"
-        base_name = os.path.basename(path)
-        base_name, extension = os.path.splitext(base_name)
-        res_name = base_name + string + extension
-        res_dir = os.path.dirname(path)
-        return os.path.join(res_dir, res_name)
-
-    def on_checkbox_state_changed(self, state):
-        # if state == 2 checked, 0 unchecked, 1 partial checked
-        checkbox = self.sender()
-        scene_path = checkbox.objectName()
-        for i, data in enumerate(self.scene_data):
-            path = data[0]
-            if path == scene_path:
-                thumbnail = data[1]
-                label = data[2]
-                self.scene_data[i] = (path, thumbnail, label, state == 2) # ATTENZIONE A SE CAMBIA LA STRUTTURA DI SELF.SCENE_DATA
-                print (self.scene_data[i][3])
-                break
-        if state == 0:
-            self.select_all_button.setText("Select All")
-
-    def select_all_checkboxes(self):
-        b = None
-        if self.select_all_button.text() == "Select All":
-            self.select_all_button.setText("Deselect All")
-            b = True
-        elif self.select_all_button.text() == "Deselect All":
-            self.select_all_button.setText("Select All")
-            b = False
-        for data in self.scene_data:
-            container = data[2]
-            checkbox = container.findChild(QCheckBox)
-            if checkbox:
-                checkbox.setChecked(b)
-            else: print ("errore in scene_data, dovrei avere trovato una checkbox ma non é successo")
-
-    def delete_video (self, scene_path):
-        if os.path.exists(scene_path):
-            print("removing video")
-            os.remove(scene_path)
-        else :
-            print("video not found")
-
-    def delete_thumbnail (self, thumbnail_path):
-        if os.path.exists(thumbnail_path):
-            print("removing thumbnail")
-            os.remove(thumbnail_path)
-        else :
-            print("thumbnail not found")
-
-    def remove_widget_from_container(self, container, widget):
-        layout = container.layout()
-        if layout:
-            layout.removeWidget(widget)
-            widget.deleteLater()
-        else:
-            print("layout not found, make sure you are passing the right container")
-
-    def remove_container_from_layout(self, container):
-        layout = container.parentWidget().layout()
-        if layout:
-            layout.removeWidget(container)
-            container.deleteLater()
-        else:
-            print("Layout not found, make sure the container has a parent widget with a layout")
-
-    def remove_data_from_scene_data(self, scene_path):
-        data = self.get_data_from_scene_data(scene_path)
-        self.scene_data.remove(data)
-
-    def remove_scene (self, container, label, checkbox, scene_path, thumbnail_path):
-        self.delete_video(scene_path)
-        self.delete_thumbnail(thumbnail_path)
-        self.remove_widget_from_container(container, label)
-        self.remove_widget_from_container(container, checkbox)
-        self.remove_container_from_layout(container)
-        self.remove_data_from_scene_data(scene_path)
-        print("scene deleted")
-
-    def delete_selected_scenes(self):
-        # [:] itera su una copia della lista originale per evitare problemi di modifica durante l'iterazione
-        # alla fine della funzione la lista originale viene sovrascritta con la copia modificata
-        for data in self.scene_data[:]:
-            selected = data[3]
-            if selected:
-                scene_path = data[0]
-                thumbnail_path = data[1]
-                container = data[2]
-                label = container.findChild(QLabel)
-                checkbox = container.findChild(QCheckBox)
-                self.remove_scene(container, label, checkbox, scene_path, thumbnail_path)
-
-    def play_video(self, video_path):
-        self.media_player.setSource(QUrl.fromLocalFile(video_path))
-        self.media_player.play()
-
-    def release_video(self):
-        self.media_player.setSource(QUrl())  # Imposta la sorgente a un URL vuoto per rilasciare il file
-
-    def merge_scenes (self):
-        self.release_video()
-        scenes_to_merge = self.get_selected_scenes()
-        if scenes_to_merge is None:
-            print("No scenes selected")
-            return
-        
-        final_frames = []
-        final_fps = None
-        for data in scenes_to_merge: 
-            scene_path = data[0]
-            frames, fps= read_video(scene_path)
-            final_frames.extend(frames)
-            if final_fps is None: # first iteration
-                final_fps = fps
-            elif final_fps != fps:
-                print("Error: different frame rates")
-                return
-            
-        if final_frames == [] or final_fps is None:
-            print("Error: no frames to merge")
-            return
-        
-        os.remove(scenes_to_merge[0][0]) # remove the first scene
-        write(final_frames, final_fps, scenes_to_merge[0][0])
-
-        res_scene = scenes_to_merge[0] # previous first scene
-
-        # deselect the res_scene
-        container = res_scene[2]
-        checkbox = container.findChild(QCheckBox)
-        checkbox.setChecked(False)
-
-        self.delete_selected_scenes()
-
-    def clear_layout(self, layout):
-        while layout.count():
-            child = layout.takeAt(0)
-            if child.widget():
-                child.widget().deleteLater()
 
 # Create the application and main window, then run the application
 app = QApplication(sys.argv)
