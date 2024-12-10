@@ -24,7 +24,8 @@ def write(imgs_res, fps, path_output_video):
         frame = imgs_res[num]
         out.write(frame)
     out.release()
-
+    
+# NON USATA
 def get_frame_count(video_path):
     # Apri il video
     cap = cv2.VideoCapture(video_path)

@@ -107,6 +107,7 @@ class MainWindow(QMainWindow):
         # Directories and paths
         self.project_path = None
         self.base_name = None  # path del video pre-processato
+        self.scene_file_path = None  # path del file scenes.txt
 
         # # ANDRÁ SOSTITUITO CON UNA LISTA DI SCENE (first frame, last frame, path, thumbnail, container, selected)
         # # Scene data
@@ -129,9 +130,9 @@ class MainWindow(QMainWindow):
     def update_frame_label(self, value):
         self.frame_label.setText(f"Frame: {value}")
 
-    def pre_processing(self, base_name, scene_file_path):
-        input_path = os.path.join(obtain_input_dir(self), base_name)
-        output_path = os.path.join(obtain_output_dir(self), base_name)
+    def pre_processing(self):
+        input_path = os.path.join(obtain_input_dir(self), self.base_name)
+        output_path = os.path.join(obtain_output_dir(self), self.base_name)
         if not os.path.isfile(input_path):
             print("Input file not found")
             return
@@ -143,7 +144,7 @@ class MainWindow(QMainWindow):
             "--path_court_model", model_path,
             "--path_input_video", input_path,
             "--path_output_video", output_path,
-            "--path_scene_file", scene_file_path
+            "--path_scene_file", self.scene_file_path
         ]
         subprocess.run(command)
 
@@ -156,6 +157,8 @@ class MainWindow(QMainWindow):
             return
         if ok and project_name:
             self.project_path = project_path
+            self.scene_file_path = os.path.join(self.project_path, "scenes.txt")
+
             inputs_dir = os.path.join(os.path.dirname("Projects"), "Inputs")
             input_video_path = QFileDialog.getOpenFileName(self, "Open Video File", inputs_dir, "Video Files (*.mp4 *.avi *.mov)")[0]
 
@@ -163,49 +166,33 @@ class MainWindow(QMainWindow):
             os.makedirs(obtain_input_dir(self), exist_ok=True)
             os.makedirs(obtain_output_dir(self), exist_ok=True)
 
-            scene_file_path = os.path.join(self.project_path, "scenes.txt")
             # crea il file scenes.txt
-            with open(scene_file_path, "w") as scene_file:
+            with open(self.scene_file_path, "w") as scene_file:
                 pass
 
             if input_video_path:
-                shutil.copy(input_video_path, obtain_input_dir(self))
                 self.base_name = os.path.basename(input_video_path)
-                self.pre_processing(self.base_name, scene_file_path)
-                
-                # create scenes [[start_frame, end_frame]] removing gaps
-                with open(scene_file_path, "r") as scene_file:
-                    base = 0	
-                    for line in scene_file:
-                        start, end = map(int, line.split())
-                        if start == base:
-                            pass # no gap
-                        elif start < base:
-                            print("Invalid scene detected")
-                            return
-                        elif start > base:
-                            gap = start - base
-                            start -= gap # == base
-                            end -= gap
+                shutil.copy(input_video_path, obtain_input_dir(self))
+                self.pre_processing()
 
-                        base = end + 1
-                        self.scenes.append([start, end])
-
-                print (self.scenes)
                 self.load_project(project_path)
 
     def load_project(self, project_path=None):
         if not project_path:
             project_path = QFileDialog.getExistingDirectory(self, "Select Project Directory", "projects")
         if project_path:
+            self.project_path = project_path
+            self.scene_file_path = os.path.join(self.project_path, "scenes.txt")
+            self.base_name = os.listdir(obtain_output_dir(self))[0]
+
+            # Check if the project directory choosen is in the Projects directory
             if not os.path.abspath(os.path.dirname(project_path)) == os.path.abspath("Projects"):
                 print("Invalid project directory")
                 return
-
-            self.project_path = project_path
-
+            
             # Check if the input and output directories exist
             if not os.path.exists(obtain_input_dir(self)):
+                print (obtain_input_dir(self))
                 print(f"Input directory does not exists")
                 return
 
@@ -213,14 +200,34 @@ class MainWindow(QMainWindow):
                 print(f"Output directory does not exists")
                 return
 
-            base_name = os.listdir(obtain_output_dir(self))[0]
-            if not base_name:
+            last_frame = 0 # used to set the range of the video slider
+            # create scenes [[start_frame, end_frame]] removing gaps
+            self.scenes = [] # in this way, if you load more than once, the scenes are not appended
+            with open(self.scene_file_path, "r") as scene_file:
+                base = 0	
+                for line in scene_file:
+                    start, end = map(int, line.split())
+                    if start == base:
+                        pass # no gap
+                    elif start < base:
+                        print("Invalid scene detected")
+                        return
+                    elif start > base:
+                        gap = start - base
+                        start -= gap # == base
+                        end -= gap
+
+                    base = end + 1
+                    last_frame = end
+                    self.scenes.append([start, end])
+
+            if not self.base_name:
                 print("No video files found in the output directory")
                 return
-            video_path = os.path.join(obtain_output_dir(self), base_name)
+            
+            print (self.scenes)
 
-            num_frames = get_frame_count(video_path)
-            self.video_slider.setRange(0, num_frames+1)
+            self.video_slider.setRange(0, last_frame)
 
 
 
