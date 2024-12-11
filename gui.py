@@ -3,7 +3,7 @@ from PySide6.QtMultimediaWidgets import QVideoWidget
 from PySide6.QtWidgets import QMainWindow, QWidget, QVBoxLayout, QPushButton, QScrollArea, QHBoxLayout, QSlider, QFileDialog, QLabel, QApplication, QSplitter, QInputDialog, QMenu, QCheckBox
 from PySide6.QtGui import QPixmap, QPalette, QColor
 from PySide6.QtCore import QUrl, Qt, QThread
-from video_operations import write, read_video
+from video_operations import write, read_video, frame_to_percentage, percentage_to_frame
 from obtain_directory import *
 import os
 import cv2
@@ -12,7 +12,7 @@ import subprocess
 import shutil
 from linked_list import Node, LinkedList
 import vlc
-from time import sleep
+import threading
 
 class ProcessingThread(QThread):
     def __init__(self, scene_path, output_path):
@@ -37,6 +37,7 @@ class ProcessingThread(QThread):
 
         os.remove(self.scene_path)
         os.rename(self.output_path, self.scene_path)
+
 
 class MainWindow(QMainWindow):
     def __init__(self):
@@ -111,8 +112,9 @@ class MainWindow(QMainWindow):
         self.scene_data = [] # vettore di vettori [[start_frame, end_frame] [button]]
         self.num_frame = None
 
-        # Gestione Threads
+        # Gestione Threads e wait
         self.processing_threads = []
+        self.condition = threading.Condition()
 
         # Create a scroll area for thumbnails
         self.scroll_area = QScrollArea()
@@ -121,7 +123,6 @@ class MainWindow(QMainWindow):
         self.scroll_layout = QHBoxLayout(self.scroll_content)
         self.scroll_area.setWidget(self.scroll_content)
         self.splitter.addWidget(self.scroll_area)
-        self.scroll_area.resize(150, 150)
 
     def update_frame_label(self, value):
         self.frame_label.setText(f"Frame: {value}")
@@ -180,6 +181,10 @@ class MainWindow(QMainWindow):
             self.scene_file_path = os.path.join(self.project_path, "scenes.txt")
             self.base_name = os.listdir(obtain_output_dir(self))[0]
 
+            video_path = os.path.join(obtain_output_dir(self), self.base_name)
+            self.media = self.istance.media_new(video_path)
+            self.mediaplayer.set_media(self.media)
+
             # Check if the project directory choosen is in the Projects directory
             if not os.path.abspath(os.path.dirname(project_path)) == os.path.abspath("Projects"):
                 print("Invalid project directory")
@@ -224,6 +229,8 @@ class MainWindow(QMainWindow):
                     scene = [start, end]
                     macro_scene = LinkedList()
                     macro_scene.append_to_list(scene)
+                    dummy = [0,100]
+                    macro_scene.append_to_list(dummy)
 
                     button = QPushButton(f"{start}-{end}")
                     button.clicked.connect(self.play_macro_scene)
@@ -244,18 +251,30 @@ class MainWindow(QMainWindow):
     def play_macro_scene(self):
         button = self.sender()
         start = None
+        macroscene = None
         for data in self.scene_data:
             if data[1] == button:
-                start = data[0].head.data[0]
-                end = data[0].head.data[1]
+                macroscene = data[0]
 
+        if macroscene is None:
+            print ("Error: macroscene is None")
+            return
+        
+        self.play_segment(macroscene.head)
+
+    def play_next_segment(self, current_node):
+        print ("Playing next segment")
+        if current_node is None:
+            return
+        start, end = current_node.data
+        self.play_segment(current_node)
+
+    def play_segment(self, current_node):
+        start, end = current_node.data
+        print (f"Playing segment {start}-{end}")
         if start is None or end is None:
             print ("Error: start is None or end is None")
             return
-
-        video_path = os.path.join(obtain_output_dir(self), self.base_name)
-        self.media = self.istance.media_new(video_path)
-        self.mediaplayer.set_media(self.media)
 
         if sys.platform.startswith('linux'):  # for Linux using the X Server
             self.mediaplayer.set_xwindow(self.videoframe.winId())
@@ -265,12 +284,17 @@ class MainWindow(QMainWindow):
             self.mediaplayer.set_nsobject(int(self.videoframe.winId()))
 
         self.mediaplayer.play()
-        self.mediaplayer.set_position(start / self.num_frame)
-        end_percentage = end / self.num_frame
-        self.mediaplayer.event_manager().event_attach(vlc.EventType.MediaPlayerTimeChanged, lambda event: self.check_segment_end(event, end_percentage))
+        self.mediaplayer.set_position(frame_to_percentage(start, self.num_frame))
+        end_percentage = frame_to_percentage(end, self.num_frame)
+        self.mediaplayer.event_manager().event_attach(vlc.EventType.MediaPlayerPositionChanged, lambda event: self.check_segment_end(event, end_percentage, current_node))
+        self.mediaplayer.event_manager().event_attach(vlc.EventType.MediaPlayerPaused, lambda event: self.play_next_segment(current_node.next))
+        
 
-    def check_segment_end(self, event, end_percentage):
-        if self.mediaplayer.get_position() >= end_percentage:
+    def check_segment_end(self, event, end_percentage, current_node):
+        position = self.mediaplayer.get_position()
+        self.video_slider.setValue(percentage_to_frame(position, self.num_frame))
+        if position >= end_percentage:
+            print ("Segment ended")
             self.mediaplayer.pause()
             self.mediaplayer.event_manager().event_detach(vlc.EventType.MediaPlayerTimeChanged)
 
