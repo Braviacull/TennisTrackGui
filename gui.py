@@ -1,7 +1,7 @@
 from PySide6.QtMultimedia import QMediaPlayer
 from PySide6.QtMultimediaWidgets import QVideoWidget
 from PySide6.QtWidgets import QMainWindow, QWidget, QVBoxLayout, QPushButton, QScrollArea, QHBoxLayout, QSlider, QFileDialog, QLabel, QApplication, QSplitter, QInputDialog, QMenu, QCheckBox
-from PySide6.QtGui import QPixmap
+from PySide6.QtGui import QPixmap, QPalette, QColor
 from PySide6.QtCore import QUrl, Qt, QThread
 from video_operations import write, read_video
 from obtain_directory import *
@@ -11,6 +11,8 @@ import sys
 import subprocess
 import shutil
 from linked_list import Node, LinkedList
+import vlc
+from time import sleep
 
 class ProcessingThread(QThread):
     def __init__(self, scene_path, output_path):
@@ -57,13 +59,18 @@ class MainWindow(QMainWindow):
         self.splitter = QSplitter(Qt.Vertical)
         self.layout.addWidget(self.splitter)
 
-        # Create a video player
-        self.video_widget = QVideoWidget()
-        self.splitter.addWidget(self.video_widget)
+        # VIDEO
+        # Create a basic vlc instance
+        self.istance = vlc.Instance()
+        self.media = None
 
         # Create a media player
-        self.media_player = QMediaPlayer()
-        self.media_player.setVideoOutput(self.video_widget)
+        self.mediaplayer = self.istance.media_player_new()
+
+        # Create a videoframe
+        self.videoframe = QWidget(self)
+        self.videoframe.setAttribute(Qt.WA_OpaquePaintEvent)
+        self.splitter.addWidget(self.videoframe)
 
         # Create a widget to hold the frame label and slider
         self.frames_and_slider = QWidget()
@@ -79,7 +86,7 @@ class MainWindow(QMainWindow):
         self.frames_and_slider_layout.addWidget(self.video_slider)
         self.video_slider.valueChanged.connect(self.update_frame_label)
 
-        # Add the frame label and slider widget to the splitter
+        # Add the frame label and slider widget to the layout
         self.splitter.addWidget(self.frames_and_slider)
 
         # Create a list of buttons to activate
@@ -102,6 +109,7 @@ class MainWindow(QMainWindow):
         self.base_name = None  # path del video pre-processato
         self.scene_file_path = None  # path del file scenes.txt
         self.scene_data = [] # vettore di vettori [[start_frame, end_frame] [button]]
+        self.num_frame = None
 
         # Gestione Threads
         self.processing_threads = []
@@ -194,7 +202,6 @@ class MainWindow(QMainWindow):
 
             self.clear_layout(self.scroll_layout) # clear the layout before loading new project
 
-            last_frame = 0 # used to set the range of the video slider
             # GET SCENES FROM SCENE FILE
             self.scene_data = [] # in this way, if you load more than once, the scene_data are not appended
             with open(self.scene_file_path, "r") as scene_file:
@@ -211,7 +218,7 @@ class MainWindow(QMainWindow):
                         print("Invalid scene detected")
                         return
                     base = end + 1
-                    last_frame = end
+                    self.num_frame = end
 
                     # scene_data[i] = [LinkedList, QPushButton, bool]
                     scene = [start, end]
@@ -226,7 +233,7 @@ class MainWindow(QMainWindow):
 
                     self.scene_data.append(data)
                     
-            self.video_slider.setRange(0, last_frame)
+            self.video_slider.setRange(0, self.num_frame)
 
     def clear_layout(self, layout):
         while layout.count():
@@ -235,9 +242,38 @@ class MainWindow(QMainWindow):
                 child.widget().deleteLater()
 
     def play_macro_scene(self):
+        button = self.sender()
+        start = None
         for data in self.scene_data:
-            list = data[0]
-            list.show()
+            if data[1] == button:
+                start = data[0].head.data[0]
+                end = data[0].head.data[1]
+
+        if start is None or end is None:
+            print ("Error: start is None or end is None")
+            return
+
+        video_path = os.path.join(obtain_output_dir(self), self.base_name)
+        self.media = self.istance.media_new(video_path)
+        self.mediaplayer.set_media(self.media)
+
+        if sys.platform.startswith('linux'):  # for Linux using the X Server
+            self.mediaplayer.set_xwindow(self.videoframe.winId())
+        elif sys.platform == "win32":  # for Windows
+            self.mediaplayer.set_hwnd(self.videoframe.winId())
+        elif sys.platform == "darwin":  # for MacOS
+            self.mediaplayer.set_nsobject(int(self.videoframe.winId()))
+
+        self.mediaplayer.play()
+        self.mediaplayer.set_position(start / self.num_frame)
+        end_percentage = end / self.num_frame
+        self.mediaplayer.event_manager().event_attach(vlc.EventType.MediaPlayerTimeChanged, lambda event: self.check_segment_end(event, end_percentage))
+
+    def check_segment_end(self, event, end_percentage):
+        if self.mediaplayer.get_position() >= end_percentage:
+            self.mediaplayer.pause()
+            self.mediaplayer.event_manager().event_detach(vlc.EventType.MediaPlayerTimeChanged)
+
             
 # Create the application and main window, then run the application
 app = QApplication(sys.argv)

@@ -24,6 +24,17 @@ def write(imgs_res, fps, path_output_video):
         frame = imgs_res[num]
         out.write(frame)
     out.release()
+
+def frame_to_ms(frame, frame_rate):
+    return int((frame / frame_rate) * 1000)
+
+def ms_to_frame(ms, frame_rate):
+    return int((ms / 1000) * frame_rate)
+
+def frame_to_percentage(frame, tot_frame):
+    return (frame / tot_frame)
+
+
     
 # NON USATA
 # def get_frame_count(video_path):
