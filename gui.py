@@ -10,6 +10,7 @@ import cv2
 import sys
 import subprocess
 import shutil
+from linked_list import Node, LinkedList
 
 class ProcessingThread(QThread):
     def __init__(self, scene_path, output_path):
@@ -100,7 +101,7 @@ class MainWindow(QMainWindow):
         self.project_path = None
         self.base_name = None  # path del video pre-processato
         self.scene_file_path = None  # path del file scenes.txt
-        self.macro_scenes = [] # vettore di vettori [[start_frame, end_frame] [button]]
+        self.scene_data = [] # vettore di vettori [[start_frame, end_frame] [button]]
 
         # Gestione Threads
         self.processing_threads = []
@@ -134,7 +135,6 @@ class MainWindow(QMainWindow):
             "--path_scene_file", self.scene_file_path
         ]
         subprocess.run(command)
-
 
     def create_new_project(self):
         project_name, ok = QInputDialog.getText(self, "New Project", "Enter project name:")
@@ -192,38 +192,41 @@ class MainWindow(QMainWindow):
                 print(f"Output directory does not exists")
                 return
 
+            self.clear_layout(self.scroll_layout) # clear the layout before loading new project
+
             last_frame = 0 # used to set the range of the video slider
-            # create macro_scenes [[[start_frame, end_frame], here there will be the button and other things]] removing gaps
-            self.macro_scenes = [] # in this way, if you load more than once, the macro_scenes are not appended
+            # GET SCENES FROM SCENE FILE
+            self.scene_data = [] # in this way, if you load more than once, the scene_data are not appended
             with open(self.scene_file_path, "r") as scene_file:
                 base = 0	
-                for line in scene_file:
+                for i, line in enumerate(scene_file):
                     start, end = map(int, line.split())
                     if start == base:
                         pass # no gap
-                    elif start < base:
-                        print("Invalid scene detected")
-                        return
                     elif start > base:
                         gap = start - base
                         start -= gap # == base
                         end -= gap
-
+                    elif start < base:
+                        print("Invalid scene detected")
+                        return
                     base = end + 1
                     last_frame = end
-                    self.macro_scenes.append([[start, end]])
 
+                    # scene_data[i] = [LinkedList, QPushButton, bool]
+                    scene = [start, end]
+                    macro_scene = LinkedList()
+                    macro_scene.append_to_list(scene)
+
+                    button = QPushButton(f"{start}-{end}")
+                    button.clicked.connect(self.play_macro_scene)
+                    self.scroll_layout.addWidget(button)
+
+                    data = [macro_scene, button, False]
+
+                    self.scene_data.append(data)
+                    
             self.video_slider.setRange(0, last_frame)
-
-            # crea dei bottoni per ogni scena e li aggiunge in self.macro_scenes
-            self.clear_layout(self.scroll_layout)
-            for macro_scene in self.macro_scenes:
-                start = macro_scene[0][0]
-                end = macro_scene[0][1]
-                button = QPushButton(f"{start}-{end}")
-                macro_scene.append(button)
-                button.clicked.connect(self.play_macro_scene)
-                self.scroll_layout.addWidget(button)
 
     def clear_layout(self, layout):
         while layout.count():
@@ -232,10 +235,10 @@ class MainWindow(QMainWindow):
                 child.widget().deleteLater()
 
     def play_macro_scene(self):
-        button = self.sender()
-        macro_scene_index = self.scroll_layout.indexOf(button)
-        print (macro_scene_index)
-
+        for data in self.scene_data:
+            list = data[0]
+            list.show()
+            
 # Create the application and main window, then run the application
 app = QApplication(sys.argv)
 window = MainWindow()
