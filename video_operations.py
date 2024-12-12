@@ -25,20 +25,37 @@ def write(imgs_res, fps, path_output_video):
         out.write(frame)
     out.release()
 
-def frame_to_percentage(frame, tot_frame):
+def get_frame_rate(video_path):
+    # Apri il video
+    cap = cv2.VideoCapture(video_path)
+    
+    # Controlla se il video è stato aperto correttamente
+    if not cap.isOpened():
+        print(f"Errore nell'apertura del video: {video_path}")
+        return None
+    
+    # Ottieni il frame rate
+    frame_rate = int(cap.get(cv2.CAP_PROP_FPS))
+    
+    # Rilascia il video
+    cap.release()
+    
+    return frame_rate
+
+def frame_to_time(frame, frame_rate): # time in ms
+    return int((frame / frame_rate) * 1000)
+
+def time_to_frame(ms, frame_rate): # time in ms
+    return int((ms / 1000) * frame_rate)
+
+
+def frame_to_position(frame, tot_frame):
     return (frame / tot_frame)
 
-def percentage_to_frame(percentage, tot_frame):
-    return int(percentage * tot_frame)
+def position_to_frame(position, tot_frame):
+    return int(position * tot_frame)
 
 # NON USATE
-
-# def frame_to_ms(frame, frame_rate):
-#     return int((frame / frame_rate) * 1000)
-
-# def ms_to_frame(ms, frame_rate):
-#     return int((ms / 1000) * frame_rate)
-
     
 # def get_frame_count(video_path):
 #     # Apri il video

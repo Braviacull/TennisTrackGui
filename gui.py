@@ -2,8 +2,8 @@ from PySide6.QtMultimedia import QMediaPlayer
 from PySide6.QtMultimediaWidgets import QVideoWidget
 from PySide6.QtWidgets import QMainWindow, QWidget, QVBoxLayout, QPushButton, QScrollArea, QHBoxLayout, QSlider, QFileDialog, QLabel, QApplication, QSplitter, QInputDialog, QMenu, QCheckBox
 from PySide6.QtGui import QPixmap, QPalette, QColor
-from PySide6.QtCore import QUrl, Qt, QThread
-from video_operations import write, read_video, frame_to_percentage, percentage_to_frame
+from PySide6.QtCore import QUrl, Qt, QThread, QTimer
+from video_operations import *
 from obtain_directory import *
 import os
 import cv2
@@ -37,7 +37,6 @@ class ProcessingThread(QThread):
 
         os.remove(self.scene_path)
         os.rename(self.output_path, self.scene_path)
-
 
 class MainWindow(QMainWindow):
     def __init__(self):
@@ -73,6 +72,16 @@ class MainWindow(QMainWindow):
         self.videoframe.setAttribute(Qt.WA_OpaquePaintEvent)
         self.splitter.addWidget(self.videoframe)
 
+        # Set a timer to check the video time
+        self.timer = QTimer(self)
+        self.timer.timeout.connect(self.check_time)
+
+        # video data
+        self.frame_rate = None
+        self.num_frame = None
+        self.current_node = None
+        self.end_time = None
+
         # Create a widget to hold the frame label and slider
         self.frames_and_slider = QWidget()
         self.frames_and_slider_layout = QHBoxLayout(self.frames_and_slider)
@@ -81,7 +90,7 @@ class MainWindow(QMainWindow):
         self.frame_label = QLabel("Frame: 0")
         self.frames_and_slider_layout.addWidget(self.frame_label)
 
-        # Create a slider for video position
+        # Create a slider for video time
         self.video_slider = QSlider(Qt.Horizontal)
         self.video_slider.setRange(0, 0)
         self.frames_and_slider_layout.addWidget(self.video_slider)
@@ -110,7 +119,6 @@ class MainWindow(QMainWindow):
         self.base_name = None  # path del video pre-processato
         self.scene_file_path = None  # path del file scenes.txt
         self.scene_data = [] # vettore di vettori [[start_frame, end_frame] [button]]
-        self.num_frame = None
 
         # Gestione Threads e wait
         self.processing_threads = []
@@ -126,6 +134,12 @@ class MainWindow(QMainWindow):
 
     def update_frame_label(self, value):
         self.frame_label.setText(f"Frame: {value}")
+
+    def clear_layout(self, layout):
+        while layout.count():
+            child = layout.takeAt(0)
+            if child.widget():
+                child.widget().deleteLater()
 
     def pre_processing(self):
         input_path = os.path.join(obtain_input_dir(self), self.base_name)
@@ -205,13 +219,15 @@ class MainWindow(QMainWindow):
                 print(f"Output directory does not exists")
                 return
 
+            self.frame_rate = get_frame_rate(video_path)
+
             self.clear_layout(self.scroll_layout) # clear the layout before loading new project
+            self.scene_data = [] # in this way, if you load more than once, the scene_data are not appended
 
             # GET SCENES FROM SCENE FILE
-            self.scene_data = [] # in this way, if you load more than once, the scene_data are not appended
             with open(self.scene_file_path, "r") as scene_file:
                 base = 0	
-                for i, line in enumerate(scene_file):
+                for line in scene_file:
                     start, end = map(int, line.split())
                     if start == base:
                         pass # no gap
@@ -229,7 +245,8 @@ class MainWindow(QMainWindow):
                     scene = [start, end]
                     macro_scene = LinkedList()
                     macro_scene.append_to_list(scene)
-                    dummy = [0,100]
+
+                    dummy = [0,100] # for testing
                     macro_scene.append_to_list(dummy)
 
                     button = QPushButton(f"{start}-{end}")
@@ -242,61 +259,61 @@ class MainWindow(QMainWindow):
                     
             self.video_slider.setRange(0, self.num_frame)
 
-    def clear_layout(self, layout):
-        while layout.count():
-            child = layout.takeAt(0)
-            if child.widget():
-                child.widget().deleteLater()
-
     def play_macro_scene(self):
         button = self.sender()
         start = None
-        macroscene = None
         for data in self.scene_data:
             if data[1] == button:
-                macroscene = data[0]
+                self.current_node = data[0].head
 
-        if macroscene is None:
+        if self.current_node is None:
             print ("Error: macroscene is None")
             return
         
-        self.play_segment(macroscene.head)
+        self.play_scene()
 
-    def play_next_segment(self, current_node):
-        print ("Playing next segment")
-        if current_node is None:
-            return
-        start, end = current_node.data
-        self.play_segment(current_node)
-
-    def play_segment(self, current_node):
-        start, end = current_node.data
+    def play_scene(self):
+        start, end = self.current_node.data
         print (f"Playing segment {start}-{end}")
         if start is None or end is None:
             print ("Error: start is None or end is None")
             return
 
+        # bind the vlc media player to the videoframe
         if sys.platform.startswith('linux'):  # for Linux using the X Server
             self.mediaplayer.set_xwindow(self.videoframe.winId())
         elif sys.platform == "win32":  # for Windows
-            self.mediaplayer.set_hwnd(self.videoframe.winId())
+            self.mediaplayer.set_hwnd(self.videoframe.winId()) # handle to the window
         elif sys.platform == "darwin":  # for MacOS
             self.mediaplayer.set_nsobject(int(self.videoframe.winId()))
 
-        self.mediaplayer.play()
-        self.mediaplayer.set_position(frame_to_percentage(start, self.num_frame))
-        end_percentage = frame_to_percentage(end, self.num_frame)
-        self.mediaplayer.event_manager().event_attach(vlc.EventType.MediaPlayerPositionChanged, lambda event: self.check_segment_end(event, end_percentage, current_node))
-        self.mediaplayer.event_manager().event_attach(vlc.EventType.MediaPlayerPaused, lambda event: self.play_next_segment(current_node.next))
-        
+        start_time = frame_to_time(start, self.frame_rate)
+        self.end_time = frame_to_time(end, self.frame_rate)
 
-    def check_segment_end(self, event, end_percentage, current_node):
-        position = self.mediaplayer.get_position()
-        self.video_slider.setValue(percentage_to_frame(position, self.num_frame))
-        if position >= end_percentage:
-            print ("Segment ended")
+        if not self.mediaplayer.is_playing():
+            self.mediaplayer.play()
+        self.mediaplayer.set_time(start_time) # it only works if the video is playing and takes a float value (time) between 0 and 1
+
+        self.timer.start(100) # check the video time every 100 ms
+
+    def play_next_scene(self):
+        self.current_node = self.current_node.next # update the current node
+        if self.current_node is None:
+            print ("There are no more scenes")
+            return
+        self.play_scene()
+
+    def check_time(self):
+        epsilon = 0.01 # 10 ms for calculation errors
+        current_time = self.mediaplayer.get_time()
+        print (f"Current time: {current_time} [ms]")
+        self.video_slider.setValue(time_to_frame(current_time, self.frame_rate))
+        if current_time >= (self.end_time - epsilon):
             self.mediaplayer.pause()
-            self.mediaplayer.event_manager().event_detach(vlc.EventType.MediaPlayerTimeChanged)
+            self.timer.stop()
+            print ("Scene ended")
+            self.video_slider.setValue(time_to_frame(self.end_time, self.frame_rate))
+            self.play_next_scene()
 
             
 # Create the application and main window, then run the application

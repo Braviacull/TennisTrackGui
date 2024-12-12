@@ -64,6 +64,12 @@ if __name__ == '__main__':
     #     output_path = f"{args.path_output_video.split('.')[0]}_{str(i + 1).zfill(num_digits)}.mp4"
     #     write(imgs_res[i], fps, output_path)
 
+    # add fps black frames at the end of the video
+    for i in range(fps):
+        imgs_res.append(imgs_res[-1])
+
     write(imgs_res, fps, args.path_output_video)
+
+
 
     
