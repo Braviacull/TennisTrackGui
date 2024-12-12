@@ -70,7 +70,9 @@ class MainWindow(QMainWindow):
         # Create a videoframe
         self.videoframe = QWidget(self)
         self.videoframe.setAttribute(Qt.WA_OpaquePaintEvent)
+        
         self.splitter.addWidget(self.videoframe)
+        self.splitter.setStretchFactor(0, 1)  # Il video player occupa tutto lo spazio
 
         # Set a timer to check the video time
         self.timer = QTimer(self)
@@ -138,9 +140,13 @@ class MainWindow(QMainWindow):
         self.processing_threads = []
         self.condition = threading.Condition()
 
+        # ...existing code...
+
         # Create a scroll area for thumbnails
         self.scroll_area = QScrollArea()
         self.scroll_area.setWidgetResizable(True)
+        self.scroll_area.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOn)
+        self.scroll_area.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOn)
         self.scroll_content = QWidget()  # container widget for the scroll area
         self.scroll_layout = QHBoxLayout(self.scroll_content)
         self.scroll_area.setWidget(self.scroll_content)
