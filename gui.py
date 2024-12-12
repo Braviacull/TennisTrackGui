@@ -98,6 +98,12 @@ class MainWindow(QMainWindow):
         self.frames_and_slider_layout.addWidget(self.video_slider)
         self.video_slider.valueChanged.connect(self.update_frame_label)
 
+        # Create a button to play and pause the video
+        self.play_and_pause_button = QPushButton("Play/Pause")
+        self.play_and_pause_button.clicked.connect(self.play_and_pause)
+        self.frames_and_slider_layout.addWidget(self.play_and_pause_button)
+        self.play_and_pause_button.setEnabled(False)
+
         # Add the frame label and slider widget to the layout
         self.splitter.addWidget(self.frames_and_slider)
 
@@ -105,37 +111,42 @@ class MainWindow(QMainWindow):
         self.buttons_to_activate = []
 
         # BUTTONS
+        # Create a horizontal layout for the buttons
+        self.buttons_layout = QHBoxLayout()
 
         # New project button
         self.new_project_button = QPushButton("New Project")
         self.new_project_button.clicked.connect(self.create_new_project)
-        self.layout.addWidget(self.new_project_button)
+        self.buttons_layout.addWidget(self.new_project_button)
 
         # Load project button
         self.load_project_button = QPushButton("Load Project")
         self.load_project_button.clicked.connect(self.load_project)
-        self.layout.addWidget(self.load_project_button)
+        self.buttons_layout.addWidget(self.load_project_button)
 
         # Play selected scenes button
         self.play_selected_button = QPushButton("Play Selected")
         self.play_selected_button.clicked.connect(self.select_and_play)
-        self.layout.addWidget(self.play_selected_button)
+        self.buttons_layout.addWidget(self.play_selected_button)
         self.buttons_to_activate.append(self.play_selected_button)
         self.play_selected_button.setEnabled(False)
 
         # Create macroscene button
         self.create_macroscene_button = QPushButton("Create Macroscene")
         self.create_macroscene_button.clicked.connect(self.create_macroscene)
-        self.layout.addWidget(self.create_macroscene_button)
+        self.buttons_layout.addWidget(self.create_macroscene_button)
         self.buttons_to_activate.append(self.create_macroscene_button)
         self.create_macroscene_button.setEnabled(False)
 
         # Jolly button
         self.jolly_button = QPushButton("Jolly")
         self.jolly_button.clicked.connect(self.jolly)
-        self.layout.addWidget(self.jolly_button)
+        self.buttons_layout.addWidget(self.jolly_button)
         self.buttons_to_activate.append(self.jolly_button)
         self.jolly_button.setEnabled(False)
+
+        # Add the buttons layout to the main layout
+        self.layout.addLayout(self.buttons_layout)
 
         # Directories and paths
         self.project_path = None
@@ -146,8 +157,6 @@ class MainWindow(QMainWindow):
         # Gestione Threads e wait
         self.processing_threads = []
         self.condition = threading.Condition()
-
-        # ...existing code...
 
         # Create a scroll area for thumbnails
         self.scroll_area = QScrollArea()
@@ -171,6 +180,12 @@ class MainWindow(QMainWindow):
             child = layout.takeAt(0)
             if child.widget():
                 child.widget().deleteLater()
+
+    def check_scene(self, state):
+        container = self.sender().parentWidget()
+        for data in self.scene_data:
+            if data[1] == container:
+                data[2] = not data[2]
 
     def pre_processing(self):
         input_path = os.path.join(obtain_input_dir(self), self.base_name)
@@ -283,6 +298,7 @@ class MainWindow(QMainWindow):
                     container = QWidget()
                     container_layout = QHBoxLayout(container)
 
+                    # create a button for each scene
                     button = QPushButton(f"{start}-{end}")
                     button.clicked.connect(self.play_macro_scene)
                     container_layout.addWidget(button)
@@ -299,22 +315,6 @@ class MainWindow(QMainWindow):
                     
             self.video_slider.setRange(0, self.num_frames)
 
-    def check_scene(self, state):
-        container = self.sender().parentWidget()
-        for data in self.scene_data:
-            if data[1] == container:
-                data[2] = not data[2]
-
-    def jolly(self): # self.scene_data = [[LinkedList, container, bool]]
-        for data in self.scene_data:
-            list = data[0]
-            container = data[1]
-            button = container.findChild(QPushButton)
-            print (button.text())
-            list.print_list()
-            print (data[2])
-            print ("---")
-
     def play_macro_scene(self):
         container = self.sender().parentWidget()
         for data in self.scene_data:
@@ -328,11 +328,17 @@ class MainWindow(QMainWindow):
         self.play_scene()
 
     def play_scene(self):
+        
         start, end = self.current_node.data
         print (f"Playing segment {start}-{end}")
         if start is None or end is None:
             print ("Error: start is None or end is None")
             return
+
+        self.play_and_pause_button.setEnabled(True)
+        self.play_and_pause_button.setText("⏸")
+        
+        self.video_slider.setRange(start, end)
 
         # bind the vlc media player to the videoframe
         if sys.platform.startswith('linux'):  # for Linux using the X Server
@@ -355,6 +361,8 @@ class MainWindow(QMainWindow):
         self.current_node = self.current_node.next # update the current node
         if self.current_node is None:
             print ("There are no more scenes")
+            self.play_and_pause_button.setEnabled(False)
+            self.play_and_pause_button.setText("Play/Pause")
             return
         self.play_scene()
 
@@ -433,6 +441,27 @@ class MainWindow(QMainWindow):
         self.scene_data.append(data)
 
         data.append(False)
+
+    def jolly(self): # self.scene_data = [[LinkedList, container, bool]]
+        for data in self.scene_data:
+            list = data[0]
+            container = data[1]
+            button = container.findChild(QPushButton)
+            print (button.text())
+            list.print_list()
+            print (data[2])
+            print ("---")
+
+    def play_and_pause (self):
+        if self.mediaplayer.is_playing():
+            self.mediaplayer.pause()
+            self.timer.stop()
+            self.play_and_pause_button.setText("▶️")
+        elif not self.mediaplayer.is_playing():
+            self.mediaplayer.play()
+            self.timer.start(100)
+            self.play_and_pause_button.setText("⏸")
+
 
 
 # Create the application and main window, then run the application
