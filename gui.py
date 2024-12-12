@@ -114,6 +114,20 @@ class MainWindow(QMainWindow):
         self.load_project_button.clicked.connect(self.load_project)
         self.layout.addWidget(self.load_project_button)
 
+        # Play selected scenes button
+        self.play_selected_button = QPushButton("Play Selected")
+        self.play_selected_button.clicked.connect(self.select_and_play)
+        self.layout.addWidget(self.play_selected_button)
+        self.buttons_to_activate.append(self.play_selected_button)
+        self.play_selected_button.setEnabled(False)
+
+        # Jolly button
+        self.jolly_button = QPushButton("Jolly")
+        self.jolly_button.clicked.connect(self.jolly)
+        self.layout.addWidget(self.jolly_button)
+        self.buttons_to_activate.append(self.jolly_button)
+        self.jolly_button.setEnabled(False)
+
         # Directories and paths
         self.project_path = None
         self.base_name = None  # path del video pre-processato
@@ -131,6 +145,10 @@ class MainWindow(QMainWindow):
         self.scroll_layout = QHBoxLayout(self.scroll_content)
         self.scroll_area.setWidget(self.scroll_content)
         self.splitter.addWidget(self.scroll_area)
+
+    def activate_buttons(self):
+        for button in self.buttons_to_activate:
+            button.setEnabled(True)
 
     def update_frame_label(self, value):
         self.frame_label.setText(f"Frame: {value}")
@@ -224,6 +242,8 @@ class MainWindow(QMainWindow):
             self.clear_layout(self.scroll_layout) # clear the layout before loading new project
             self.scene_data = [] # in this way, if you load more than once, the scene_data are not appended
 
+            self.activate_buttons()
+
             # GET SCENES FROM SCENE FILE
             with open(self.scene_file_path, "r") as scene_file:
                 base = 0	
@@ -241,29 +261,51 @@ class MainWindow(QMainWindow):
                     base = end + 1
                     self.num_frame = end
 
-                    # scene_data[i] = [LinkedList, QPushButton, bool]
+                    # scene_data[i] = [LinkedList, container, bool]
                     scene = [start, end]
                     macro_scene = LinkedList()
                     macro_scene.append_to_list(scene)
 
-                    dummy = [0,100] # for testing
-                    macro_scene.append_to_list(dummy)
+                    # create a checkbox for each scene
+                    container = QWidget()
+                    container_layout = QHBoxLayout(container)
+
+                    checkbox = QCheckBox()
+                    container_layout.addWidget(checkbox)
+                    checkbox.stateChanged.connect(self.check_scene)
+
 
                     button = QPushButton(f"{start}-{end}")
                     button.clicked.connect(self.play_macro_scene)
-                    self.scroll_layout.addWidget(button)
+                    container_layout.addWidget(button)
 
-                    data = [macro_scene, button, False]
+                    self.scroll_layout.addWidget(container)
+
+                    data = [macro_scene, container, False]
 
                     self.scene_data.append(data)
                     
             self.video_slider.setRange(0, self.num_frame)
 
-    def play_macro_scene(self):
-        button = self.sender()
-        start = None
+    def check_scene(self, state):
+        container = self.sender().parentWidget()
         for data in self.scene_data:
-            if data[1] == button:
+            if data[1] == container:
+                data[2] = not data[2]
+
+    def jolly(self): # self.scene_data = [[LinkedList, container, bool]]
+        for data in self.scene_data:
+            list = data[0]
+            list.print_list()
+            container = data[1]
+            button = container.layout().itemAt(1).widget()
+            print (button.text())
+            print (data[2])
+
+    def play_macro_scene(self):
+        container = self.sender().parentWidget()
+        for data in self.scene_data:
+            if data[1] == container:
                 self.current_node = data[0].head
 
         if self.current_node is None:
@@ -312,8 +354,26 @@ class MainWindow(QMainWindow):
             self.mediaplayer.pause()
             self.timer.stop()
             print ("Scene ended")
-            self.video_slider.setValue(time_to_frame(self.end_time, self.frame_rate))
+            end = self.current_node.data[1]
+            self.video_slider.setValue(end)
             self.play_next_scene()
+
+    def select_and_play(self):
+        merged_scenes_macroscenes = LinkedList()
+        for data in self.scene_data:
+            if data[2]:
+                current_node = data[0].head
+                while current_node:
+                    merged_scenes_macroscenes.append_to_list(current_node.data)
+                    current_node = current_node.next
+
+        self.current_node = merged_scenes_macroscenes.head
+
+        if self.current_node is None:
+            print ("Select some checkboxes")
+            return
+
+        self.play_scene()
 
             
 # Create the application and main window, then run the application
