@@ -270,14 +270,13 @@ class MainWindow(QMainWindow):
                     container = QWidget()
                     container_layout = QHBoxLayout(container)
 
-                    checkbox = QCheckBox()
-                    container_layout.addWidget(checkbox)
-                    checkbox.stateChanged.connect(self.check_scene)
-
-
                     button = QPushButton(f"{start}-{end}")
                     button.clicked.connect(self.play_macro_scene)
                     container_layout.addWidget(button)
+
+                    checkbox = QCheckBox()
+                    container_layout.addWidget(checkbox)
+                    checkbox.stateChanged.connect(self.check_scene)
 
                     self.scroll_layout.addWidget(container)
 
