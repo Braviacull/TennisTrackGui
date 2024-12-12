@@ -1,6 +1,6 @@
 from PySide6.QtMultimedia import QMediaPlayer
 from PySide6.QtMultimediaWidgets import QVideoWidget
-from PySide6.QtWidgets import QMainWindow, QWidget, QVBoxLayout, QPushButton, QScrollArea, QHBoxLayout, QSlider, QFileDialog, QLabel, QApplication, QSplitter, QInputDialog, QMenu, QCheckBox
+from PySide6.QtWidgets import QMainWindow, QWidget, QVBoxLayout, QPushButton, QScrollArea, QHBoxLayout, QSlider, QFileDialog, QLabel, QApplication, QSplitter, QInputDialog, QMenu, QCheckBox, QMessageBox
 from PySide6.QtGui import QPixmap, QPalette, QColor
 from PySide6.QtCore import QUrl, Qt, QThread, QTimer
 from video_operations import *
@@ -80,7 +80,7 @@ class MainWindow(QMainWindow):
 
         # video data
         self.frame_rate = None
-        self.num_frame = None
+        self.num_frames = None
         self.current_node = None
         self.end_time = None
 
@@ -122,6 +122,13 @@ class MainWindow(QMainWindow):
         self.layout.addWidget(self.play_selected_button)
         self.buttons_to_activate.append(self.play_selected_button)
         self.play_selected_button.setEnabled(False)
+
+        # Create macroscene button
+        self.create_macroscene_button = QPushButton("Create Macroscene")
+        self.create_macroscene_button.clicked.connect(self.create_macroscene)
+        self.layout.addWidget(self.create_macroscene_button)
+        self.buttons_to_activate.append(self.create_macroscene_button)
+        self.create_macroscene_button.setEnabled(False)
 
         # Jolly button
         self.jolly_button = QPushButton("Jolly")
@@ -265,7 +272,7 @@ class MainWindow(QMainWindow):
                         print("Invalid scene detected")
                         return
                     base = end + 1
-                    self.num_frame = end
+                    self.num_frames = end
 
                     # scene_data[i] = [LinkedList, container, bool]
                     scene = [start, end]
@@ -290,7 +297,7 @@ class MainWindow(QMainWindow):
 
                     self.scene_data.append(data)
                     
-            self.video_slider.setRange(0, self.num_frame)
+            self.video_slider.setRange(0, self.num_frames)
 
     def check_scene(self, state):
         container = self.sender().parentWidget()
@@ -301,11 +308,12 @@ class MainWindow(QMainWindow):
     def jolly(self): # self.scene_data = [[LinkedList, container, bool]]
         for data in self.scene_data:
             list = data[0]
-            list.print_list()
             container = data[1]
-            button = container.layout().itemAt(1).widget()
+            button = container.findChild(QPushButton)
             print (button.text())
+            list.print_list()
             print (data[2])
+            print ("---")
 
     def play_macro_scene(self):
         container = self.sender().parentWidget()
@@ -353,7 +361,7 @@ class MainWindow(QMainWindow):
     def check_time(self):
         epsilon = 0.01 # 10 ms for calculation errors
         current_time = self.mediaplayer.get_time()
-        print (f"Current time: {current_time} [ms]")
+        # print (f"Current time: {current_time} [ms]")
         self.video_slider.setValue(time_to_frame(current_time, self.frame_rate))
         if current_time >= (self.end_time - epsilon):
             self.mediaplayer.pause()
@@ -380,7 +388,53 @@ class MainWindow(QMainWindow):
 
         self.play_scene()
 
-            
+    def create_macroscene(self):  # self.scene_data = [[LinkedList, container, bool]]
+        data = []
+        scene_list = LinkedList()
+        # asks the user to enter the name of the macroscene
+        macroscene_name, ok = QInputDialog.getText(self, "Macroscene Name", "Enter the name of the macroscene:")
+        if not ok:
+            return
+        while True:
+            # asks the user to enter the start and end frame of the scene
+            start, ok = QInputDialog.getInt(self, "Start Frame", "Enter the start frame:", 0, 0, self.num_frames)
+            if not ok:
+                return
+            end, ok = QInputDialog.getInt(self, "End Frame", "Enter the end frame:", 0, 0, self.num_frames)
+            if not ok:
+                return
+            if start >= end:
+                print("Invalid scene: end frame must be greater than start frame")
+                return
+            scene = [start, end]
+            scene_list.append_to_list(scene)
+            # asks the user if he wants to add another scene to the macroscene
+            reply = QMessageBox.question(self, "Add another scene", "Do you want to add another scene to the macroscene?",
+                                        QMessageBox.Yes | QMessageBox.No)
+            if reply == QMessageBox.No:
+                break
+        print("Macroscene created")
+        data.append(scene_list)
+
+        container = QWidget()
+        container_layout = QHBoxLayout(container)
+        # create a button for the macroscene
+        button = QPushButton(macroscene_name)
+        button.clicked.connect(self.play_macro_scene)
+        container_layout.addWidget(button)
+        # create a checkbox for the macroscene
+        checkbox = QCheckBox()
+        checkbox.stateChanged.connect(self.check_scene)
+        container_layout.addWidget(checkbox)
+
+        data.append(container)
+
+        self.scroll_layout.addWidget(container)
+        self.scene_data.append(data)
+
+        data.append(False)
+
+
 # Create the application and main window, then run the application
 app = QApplication(sys.argv)
 window = MainWindow()
