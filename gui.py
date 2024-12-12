@@ -1,18 +1,21 @@
-from PySide6.QtMultimedia import QMediaPlayer
-from PySide6.QtMultimediaWidgets import QVideoWidget
-from PySide6.QtWidgets import QMainWindow, QWidget, QVBoxLayout, QPushButton, QScrollArea, QHBoxLayout, QSlider, QFileDialog, QLabel, QApplication, QSplitter, QInputDialog, QMenu, QCheckBox, QMessageBox
-from PySide6.QtGui import QPixmap, QPalette, QColor
-from PySide6.QtCore import QUrl, Qt, QThread, QTimer
-from video_operations import *
-from obtain_directory import *
 import os
-import cv2
 import sys
 import subprocess
 import shutil
-from linked_list import Node, LinkedList
-import vlc
 import threading
+
+from PySide6.QtWidgets import (
+    QMainWindow, QWidget, QVBoxLayout, QPushButton, QScrollArea, QHBoxLayout, 
+    QSlider, QFileDialog, QLabel, QApplication, QSplitter, QInputDialog, 
+    QMenu, QCheckBox, QMessageBox
+)
+from PySide6.QtCore import Qt, QThread, QTimer
+
+import vlc
+
+from video_operations import *
+from obtain_directory import *
+from linked_list import Node, LinkedList
 
 class ProcessingThread(QThread):
     def __init__(self, scene_path, output_path):
@@ -138,6 +141,14 @@ class MainWindow(QMainWindow):
         self.buttons_to_activate.append(self.create_macroscene_button)
         self.create_macroscene_button.setEnabled(False)
 
+        # Merge button
+        self.merge_button = QPushButton("Merge")
+        self.merge_button.clicked.connect(self.merge)
+        self.buttons_layout.addWidget(self.merge_button)
+        self.buttons_to_activate.append(self.merge_button)
+        self.merge_button.setEnabled(False)
+
+
         # Jolly button
         self.jolly_button = QPushButton("Jolly")
         self.jolly_button.clicked.connect(self.jolly)
@@ -171,6 +182,16 @@ class MainWindow(QMainWindow):
     def activate_buttons(self):
         for button in self.buttons_to_activate:
             button.setEnabled(True)
+
+    def play_and_pause (self):
+        if self.mediaplayer.is_playing():
+            self.mediaplayer.pause()
+            self.timer.stop()
+            self.play_and_pause_button.setText("▶️")
+        elif not self.mediaplayer.is_playing():
+            self.mediaplayer.play()
+            self.timer.start(100)
+            self.play_and_pause_button.setText("⏸")
 
     def update_frame_label(self, value):
         self.frame_label.setText(f"Frame: {value}")
@@ -312,8 +333,6 @@ class MainWindow(QMainWindow):
                     data = [macro_scene, container, False]
 
                     self.scene_data.append(data)
-                    
-            self.video_slider.setRange(0, self.num_frames)
 
     def play_macro_scene(self):
         container = self.sender().parentWidget()
@@ -442,7 +461,7 @@ class MainWindow(QMainWindow):
 
         data.append(False)
 
-    def jolly(self): # self.scene_data = [[LinkedList, container, bool]]
+    def jolly(self): # self.scene_data = [[LinkedList, container, bool]]cls
         for data in self.scene_data:
             list = data[0]
             container = data[1]
@@ -451,18 +470,51 @@ class MainWindow(QMainWindow):
             list.print_list()
             print (data[2])
             print ("---")
+        print ("\n")
 
-    def play_and_pause (self):
-        if self.mediaplayer.is_playing():
-            self.mediaplayer.pause()
-            self.timer.stop()
-            self.play_and_pause_button.setText("▶️")
-        elif not self.mediaplayer.is_playing():
-            self.mediaplayer.play()
-            self.timer.start(100)
-            self.play_and_pause_button.setText("⏸")
+    def get_selected_scenes_data(self):
+        selected_scenes_data = []
+        for data in self.scene_data:
+            if data[2]:
+                selected_scenes_data.append(data)
+        return selected_scenes_data
+    
+    def remove_container_from_layout(self, container, layout):
+        layout.removeWidget(container)
+        container.deleteLater()
 
+    def merge (self):
+        selected_scenes_data = self.get_selected_scenes_data()
+        if len(selected_scenes_data) < 2:
+            print ("Select at least two scenes")
+            return
+        
+        resulting_name = ""
+        
+        new_macroscene = LinkedList()
+        for data in selected_scenes_data:
+            current_node = data[0].head
+            button = data[1].findChild(QPushButton)
+            resulting_name += ("  " + button.text())
+            while current_node:
+                new_macroscene.append_to_list(current_node.data)
+                current_node = current_node.next
 
+        # remove the initial two spaces
+        resulting_name = resulting_name[2:]
+
+        resulting_scene_data = selected_scenes_data[0]
+        container = resulting_scene_data[1]
+        button = container.findChild(QPushButton)
+        button.setText(resulting_name)
+
+        checkbox = container.findChild(QCheckBox)
+        checkbox.setChecked(False)
+        resulting_scene_data[0] = new_macroscene
+
+        for data in selected_scenes_data[1:]: # work with a copy of the list for deleting elements
+            self.remove_container_from_layout(data[1], self.scroll_layout)
+            self.scene_data.remove(data)
 
 # Create the application and main window, then run the application
 app = QApplication(sys.argv)
