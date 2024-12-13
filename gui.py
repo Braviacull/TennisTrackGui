@@ -100,6 +100,9 @@ class MainWindow(QMainWindow):
         self.video_slider.setRange(0, 0)
         self.frames_and_slider_layout.addWidget(self.video_slider)
         self.video_slider.valueChanged.connect(self.update_frame_label)
+        self.video_slider.sliderPressed.connect(self.video_slider_touched)
+        # self.video_slider.sliderReleased.connect(self.play)
+        self.video_slider.sliderMoved.connect(self.slider_moved)
 
         # Create a button to play and pause the video
         self.play_and_pause_button = QPushButton("Play/Pause")
@@ -169,7 +172,7 @@ class MainWindow(QMainWindow):
         self.project_path = None
         self.base_name = None  # path del video pre-processato
         self.scene_file_path = None  # path del file scenes.txt
-        self.scene_data = [] # vettore di vettori [[start_frame, end_frame] [button]]
+        self.scene_data = [] # [LinkedList, container_widget, checked]
 
         # Gestione Threads e wait
         self.processing_threads = []
@@ -242,6 +245,19 @@ class MainWindow(QMainWindow):
             self.mediaplayer.play()
             self.timer.start(100)
             self.play_and_pause_button.setText("⏸")
+            
+    def video_slider_touched(self):
+        time = frame_to_time(self.video_slider.value(), self.frame_rate)
+        self.mediaplayer.set_time(time)
+        if self.mediaplayer.is_playing():
+            self.mediaplayer.pause()
+            self.timer.stop()
+            self.play_and_pause_button.setText("▶️")
+    
+    def slider_moved(self):
+        frame = self.video_slider.value()
+        time = frame_to_time(frame, self.frame_rate)
+        self.mediaplayer.set_time(time)
 
     def update_frame_label(self, value):
         self.frame_label.setText(f"Frame: {value}")
@@ -370,7 +386,7 @@ class MainWindow(QMainWindow):
 
                     self.scroll_layout.addWidget(container)
 
-                    data = [macro_scene, container, False]
+                    data = [macro_scene, container, False] # [LinkedList, container, checked]
                     self.scene_data.append(data)
 
             self.save_project()
@@ -522,7 +538,6 @@ class MainWindow(QMainWindow):
                     scene_file.write(f"{start} {end} ")
                     current_node = current_node.next
                 scene_file.write("\n")
-
 
 if __name__ == "__main__":
     # Create the application and main window, then run the application
