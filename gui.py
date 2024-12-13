@@ -49,57 +49,41 @@ class ProcessingThread(QThread):
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
-
-        # Set the window title
+        
         self.setWindowTitle("TennisTrack")
 
+        # Create the main window
         # Set the initial size of the main window
         self.resize(800, 600)
-
         # Create the central widget and set it as the central widget of the main window
         self.central_widget = QWidget()
         self.setCentralWidget(self.central_widget)
-
         # Create a vertical layout for the central widget
         self.layout = QVBoxLayout(self.central_widget)
-
-        # Create a splitter to hold the video player and thumbnails
+        # Create a splitter to hold the video frame the slider and the scroll area
         self.splitter = QSplitter(Qt.Vertical)
         self.layout.addWidget(self.splitter)
 
-        # VIDEO
+        # Video player
         # Create a basic vlc instance
         self.istance = vlc.Instance()
         self.media = None
-
         # Create a media player
         self.mediaplayer = self.istance.media_player_new()
-
         # Create a videoframe
         self.videoframe = QWidget(self)
         self.videoframe.setAttribute(Qt.WA_OpaquePaintEvent)
-        
+        # Add the videoframe to the splitter
         self.splitter.addWidget(self.videoframe)
         self.splitter.setStretchFactor(0, 1)  # Il video player occupa tutto lo spazio
 
-        # Set a timer to check the video time
-        self.timer = QTimer(self)
-        self.timer.timeout.connect(self.check_time)
-
-        # video data
-        self.frame_rate = None
-        self.num_frames = None
-        self.current_node = None
-        self.end_time = None
-
+        # frame label, slider and play/pause button
         # Create a widget to hold the frame label and slider
         self.frames_and_slider = QWidget()
         self.frames_and_slider_layout = QHBoxLayout(self.frames_and_slider)
-
         # Create a label to display the current frame
         self.frame_label = QLabel("Frame: 0")
         self.frames_and_slider_layout.addWidget(self.frame_label)
-
         # Create a slider for video time
         self.video_slider = QSlider(Qt.Horizontal)
         self.video_slider.setRange(0, 0)
@@ -108,82 +92,15 @@ class MainWindow(QMainWindow):
         self.video_slider.sliderPressed.connect(self.video_slider_touched)
         # self.video_slider.sliderReleased.connect(self.play)
         self.video_slider.sliderMoved.connect(self.slider_moved)
-
         # Create a button to play and pause the video
         self.play_and_pause_button = QPushButton("Play/Pause")
         self.play_and_pause_button.clicked.connect(self.play_and_pause)
         self.frames_and_slider_layout.addWidget(self.play_and_pause_button)
         self.play_and_pause_button.setEnabled(False)
-
         # Add the frame label and slider widget to the layout
         self.splitter.addWidget(self.frames_and_slider)
 
-        # Create a list of buttons to activate
-        self.buttons_to_activate = []
-
-        # BUTTONS
-        # Create a horizontal layout for the buttons
-        self.buttons_layout = QHBoxLayout()
-
-        # New project button
-        self.new_project_button = QPushButton("New Project")
-        self.new_project_button.clicked.connect(self.create_new_project)
-        self.buttons_layout.addWidget(self.new_project_button)
-
-        # Load project button
-        self.load_project_button = QPushButton("Load Project")
-        self.load_project_button.clicked.connect(self.load_project)
-        self.buttons_layout.addWidget(self.load_project_button)
-
-        # Save project button
-        self.save_project_button = QPushButton("Save Project")
-        self.save_project_button.clicked.connect(self.save_project)
-        self.buttons_layout.addWidget(self.save_project_button)
-        self.buttons_to_activate.append(self.save_project_button)
-        self.save_project_button.setEnabled(False)
-
-        # Play selected scenes button
-        self.play_selected_button = QPushButton("Play Selected")
-        self.play_selected_button.clicked.connect(self.select_and_play)
-        self.buttons_layout.addWidget(self.play_selected_button)
-        self.buttons_to_activate.append(self.play_selected_button)
-        self.play_selected_button.setEnabled(False)
-
-        # Create macroscene button
-        self.create_macroscene_button = QPushButton("Create Macroscene")
-        self.create_macroscene_button.clicked.connect(self.create_macroscene)
-        self.buttons_layout.addWidget(self.create_macroscene_button)
-        self.buttons_to_activate.append(self.create_macroscene_button)
-        self.create_macroscene_button.setEnabled(False)
-
-        # Merge button
-        self.merge_button = QPushButton("Merge")
-        self.merge_button.clicked.connect(self.merge)
-        self.buttons_layout.addWidget(self.merge_button)
-        self.buttons_to_activate.append(self.merge_button)
-        self.merge_button.setEnabled(False)
-
-        # Jolly button
-        self.jolly_button = QPushButton("Jolly")
-        self.jolly_button.clicked.connect(self.jolly)
-        self.buttons_layout.addWidget(self.jolly_button)
-        self.buttons_to_activate.append(self.jolly_button)
-        self.jolly_button.setEnabled(False)
-
-        # Add the buttons layout to the main layout
-        self.layout.addLayout(self.buttons_layout)
-
-        # Directories and paths
-        self.project_path = None
-        self.base_name = None  # path del video pre-processato
-        self.scene_file_path = None  # path del file scenes.txt
-        self.scene_data = [] # [LinkedList, container_widget, checked]
-
-        # Gestione Threads e wait
-        self.processing_threads = []
-        self.condition = threading.Condition()
-
-        # Create a scroll area for thumbnails
+        # Create a scroll area
         self.scroll_area = QScrollArea()
         self.scroll_area.setWidgetResizable(True)
         self.scroll_area.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOn)
@@ -192,6 +109,74 @@ class MainWindow(QMainWindow):
         self.scroll_layout = QHBoxLayout(self.scroll_content)
         self.scroll_area.setWidget(self.scroll_content)
         self.splitter.addWidget(self.scroll_area)
+
+        # BUTTONS
+        # Create a list of buttons to activate
+        self.buttons_to_activate = []
+        # Create a horizontal layout for the buttons
+        self.buttons_layout = QHBoxLayout()
+        # New project button
+        self.new_project_button = QPushButton("New Project")
+        self.new_project_button.clicked.connect(self.create_new_project)
+        self.buttons_layout.addWidget(self.new_project_button)
+        # Load project button
+        self.load_project_button = QPushButton("Load Project")
+        self.load_project_button.clicked.connect(self.load_project)
+        self.buttons_layout.addWidget(self.load_project_button)
+        # Save project button
+        self.save_project_button = QPushButton("Save Project")
+        self.save_project_button.clicked.connect(self.save_project)
+        self.buttons_layout.addWidget(self.save_project_button)
+        self.buttons_to_activate.append(self.save_project_button)
+        self.save_project_button.setEnabled(False)
+        # Play selected scenes button
+        self.play_selected_button = QPushButton("Play Selected")
+        self.play_selected_button.clicked.connect(self.select_and_play)
+        self.buttons_layout.addWidget(self.play_selected_button)
+        self.buttons_to_activate.append(self.play_selected_button)
+        self.play_selected_button.setEnabled(False)
+        # Create macroscene button
+        self.create_macroscene_button = QPushButton("Create Macroscene")
+        self.create_macroscene_button.clicked.connect(self.create_macroscene)
+        self.buttons_layout.addWidget(self.create_macroscene_button)
+        self.buttons_to_activate.append(self.create_macroscene_button)
+        self.create_macroscene_button.setEnabled(False)
+        # Merge button
+        self.merge_button = QPushButton("Merge")
+        self.merge_button.clicked.connect(self.merge)
+        self.buttons_layout.addWidget(self.merge_button)
+        self.buttons_to_activate.append(self.merge_button)
+        self.merge_button.setEnabled(False)
+        # Jolly button
+        self.jolly_button = QPushButton("Jolly")
+        self.jolly_button.clicked.connect(self.jolly)
+        self.buttons_layout.addWidget(self.jolly_button)
+        self.buttons_to_activate.append(self.jolly_button)
+        self.jolly_button.setEnabled(False)
+        # Add the buttons layout to the main layout
+        self.layout.addLayout(self.buttons_layout)
+
+        # Directories, paths and base names
+        self.project_path = None
+        self.scene_file_path = None  # path del file scenes.txt
+        self.base_name = None  # path del video pre-processato
+
+        # Scene data MAIN DATA STRUCTURE
+        self.scene_data = [] # [LinkedList, container_widget, checked]
+
+        # Gestione Threads e wait
+        self.processing_threads = []
+        self.condition = threading.Condition()
+
+        # video variables
+        # video data
+        self.frame_rate = None
+        self.num_frames = None
+        self.current_node = None
+        self.end_time = None
+        # Set a timer to check the video time
+        self.timer = QTimer(self)
+        self.timer.timeout.connect(self.check_time)
 
     def video_slider_touched(self):
         time = frame_to_time(self.video_slider.value(), self.frame_rate)
