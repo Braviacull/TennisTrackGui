@@ -16,6 +16,7 @@ def main(frames, scenes, homography_matrices):
     """
     scene_scartate = 0
     imgs_res = []
+    base = 0
     is_track = [x is not None for x in homography_matrices]
     for num_scene in range(len(scenes)):
         sum_track = sum(is_track[scenes[num_scene][0]:scenes[num_scene][1]])
@@ -24,9 +25,24 @@ def main(frames, scenes, homography_matrices):
         eps = 1e-15
         scene_rate = sum_track / (len_track + eps)
         if (scene_rate > 0.5):
-            imgs_res.extend(frames[scenes[num_scene][0]:scenes[num_scene][1]])
+            start = scenes[num_scene][0]
+            end = scenes[num_scene][1]
+            imgs_res.extend(frames[start:end])
+
+            # write without gaps
+            if start == base:
+                    pass # no gap
+            elif start > base:
+                gap = start - base
+                start -= gap # == base
+                end -= gap
+            elif start < base:
+                print("Invalid scene detected")
+                return
+            base = end + 1
+
             with open(args.path_scene_file, 'a') as scene_file:
-                scene_file.write(f"{scenes[num_scene][0]} {scenes[num_scene][1]}\n")
+                scene_file.write(f"{start} {end}\n")
 
         else:
             scene_scartate += 1
@@ -58,13 +74,6 @@ if __name__ == '__main__':
     num_imgs_res = len(imgs_res) # numero di scene risultanti
     num_digits = len(str(num_imgs_res)) # numero di cifre del numero di scene risultanti
 
-
-    # VECCHIA VERSIONE DI QUANDO SI LAVORAVA SU PIU' SCENE
-    # for i in range(len(imgs_res)):
-    #     output_path = f"{args.path_output_video.split('.')[0]}_{str(i + 1).zfill(num_digits)}.mp4"
-    #     write(imgs_res[i], fps, output_path)
-
-    # add fps black frames at the end of the video
     for i in range(fps):
         imgs_res.append(imgs_res[-1])
 

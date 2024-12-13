@@ -1,25 +1,31 @@
-import threading
+# GET SCENES FROM SCENE FILE
+def get_scenes(self):
+    with open(self.scene_file_path, "r") as scene_file:
+        for line in scene_file:
+            start, end = map(int, line.split())
+            self.num_frames = end
 
-condition = threading.Condition()
+            # scene_data[i] = [LinkedList, container, bool]
+            scene = [start, end]
+            macro_scene = LinkedList()
+            macro_scene.append_to_list(scene)
 
-def thread_function():
-    with condition:
-        print("Thread in attesa...")
-        condition.wait()  # Il thread attende fino a quando non viene notificato
-        print("Thread ripreso!")
+            # create a checkbox for each scene
+            container = QWidget()
+            container_layout = QHBoxLayout(container)
 
-def main():
-    thread = threading.Thread(target=thread_function)
-    thread.start()
+            # create a button for each scene
+            button = QPushButton(f"{start}-{end}")
+            button.clicked.connect(self.play_macro_scene)
+            container_layout.addWidget(button)
 
-    import time
-    time.sleep(2)  # Simula un ritardo
+            checkbox = QCheckBox()
+            container_layout.addWidget(checkbox)
+            checkbox.stateChanged.connect(self.check_scene)
 
-    with condition:
-        print("Notifica al thread...")
-        condition.notify()  # Notifica al thread in attesa
+            self.scroll_layout.addWidget(container)
 
-    thread.join()
+            data = [macro_scene, container, False]
 
-if __name__ == "__main__":
-    main()
+            self.scene_data.append(data)
+    self.save_project()

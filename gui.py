@@ -127,6 +127,13 @@ class MainWindow(QMainWindow):
         self.load_project_button.clicked.connect(self.load_project)
         self.buttons_layout.addWidget(self.load_project_button)
 
+        # Save project button
+        self.save_project_button = QPushButton("Save Project")
+        self.save_project_button.clicked.connect(self.save_project)
+        self.buttons_layout.addWidget(self.save_project_button)
+        self.buttons_to_activate.append(self.save_project_button)
+        self.save_project_button.setEnabled(False)
+
         # Play selected scenes button
         self.play_selected_button = QPushButton("Play Selected")
         self.play_selected_button.clicked.connect(self.select_and_play)
@@ -147,7 +154,6 @@ class MainWindow(QMainWindow):
         self.buttons_layout.addWidget(self.merge_button)
         self.buttons_to_activate.append(self.merge_button)
         self.merge_button.setEnabled(False)
-
 
         # Jolly button
         self.jolly_button = QPushButton("Jolly")
@@ -179,11 +185,55 @@ class MainWindow(QMainWindow):
         self.scroll_area.setWidget(self.scroll_content)
         self.splitter.addWidget(self.scroll_area)
 
+    def get_selected_scenes_data(self):
+        selected_scenes_data = []
+        for data in self.scene_data:
+            if data[2]:
+                selected_scenes_data.append(data)
+        return selected_scenes_data
+    
+    def remove_container_from_layout(self, container, layout):
+        layout.removeWidget(container)
+        container.deleteLater()
+
+    def merge (self):
+        selected_scenes_data = self.get_selected_scenes_data()
+        if len(selected_scenes_data) < 2:
+            print ("Select at least two scenes")
+            return
+        
+        resulting_name = ""
+        
+        new_macroscene = LinkedList()
+        for data in selected_scenes_data:
+            current_node = data[0].head
+            button = data[1].findChild(QPushButton)
+            resulting_name += ("  " + button.text())
+            while current_node:
+                new_macroscene.append_to_list(current_node.data)
+                current_node = current_node.next
+
+        # remove the initial two spaces
+        resulting_name = resulting_name[2:]
+
+        resulting_scene_data = selected_scenes_data[0]
+        container = resulting_scene_data[1]
+        button = container.findChild(QPushButton)
+        button.setText(resulting_name)
+
+        checkbox = container.findChild(QCheckBox)
+        checkbox.setChecked(False)
+        resulting_scene_data[0] = new_macroscene
+
+        for data in selected_scenes_data[1:]: # work with a copy of the list for deleting elements
+            self.remove_container_from_layout(data[1], self.scroll_layout)
+            self.scene_data.remove(data)
+
     def activate_buttons(self):
         for button in self.buttons_to_activate:
             button.setEnabled(True)
 
-    def play_and_pause (self):
+    def play_and_pause(self):
         if self.mediaplayer.is_playing():
             self.mediaplayer.pause()
             self.timer.stop()
@@ -251,7 +301,6 @@ class MainWindow(QMainWindow):
                 self.base_name = os.path.basename(input_video_path)
                 shutil.copy(input_video_path, obtain_input_dir(self))
                 self.pre_processing()
-
                 self.load_project(project_path)
 
     def load_project(self, project_path=None):
@@ -293,34 +342,25 @@ class MainWindow(QMainWindow):
 
             self.activate_buttons()
 
-            # GET SCENES FROM SCENE FILE
             with open(self.scene_file_path, "r") as scene_file:
-                base = 0	
                 for line in scene_file:
-                    start, end = map(int, line.split())
-                    if start == base:
-                        pass # no gap
-                    elif start > base:
-                        gap = start - base
-                        start -= gap # == base
-                        end -= gap
-                    elif start < base:
-                        print("Invalid scene detected")
-                        return
-                    base = end + 1
-                    self.num_frames = end
-
-                    # scene_data[i] = [LinkedList, container, bool]
-                    scene = [start, end]
+                    scenes = line.split()
                     macro_scene = LinkedList()
-                    macro_scene.append_to_list(scene)
 
-                    # create a checkbox for each scene
+                    # Popola la linked list con le scene
+                    for i in range(0, len(scenes), 2):
+                        start = int(scenes[i])
+                        end = int(scenes[i + 1])
+
+                        scene = [start, end]
+                        macro_scene.append_to_list(scene)
+
                     container = QWidget()
                     container_layout = QHBoxLayout(container)
 
-                    # create a button for each scene
-                    button = QPushButton(f"{start}-{end}")
+                    # Crea il testo del pulsante con i trattini tra le coppie di numeri
+                    button_text = ' | '.join(f"{scenes[j]}-{scenes[j+1]}" for j in range(0, len(scenes), 2))
+                    button = QPushButton(button_text.strip())
                     button.clicked.connect(self.play_macro_scene)
                     container_layout.addWidget(button)
 
@@ -331,8 +371,9 @@ class MainWindow(QMainWindow):
                     self.scroll_layout.addWidget(container)
 
                     data = [macro_scene, container, False]
-
                     self.scene_data.append(data)
+
+            self.save_project()
 
     def play_macro_scene(self):
         container = self.sender().parentWidget()
@@ -472,52 +513,20 @@ class MainWindow(QMainWindow):
             print ("---")
         print ("\n")
 
-    def get_selected_scenes_data(self):
-        selected_scenes_data = []
-        for data in self.scene_data:
-            if data[2]:
-                selected_scenes_data.append(data)
-        return selected_scenes_data
-    
-    def remove_container_from_layout(self, container, layout):
-        layout.removeWidget(container)
-        container.deleteLater()
+    def save_project(self):
+        with open(self.scene_file_path, "w") as scene_file:
+            for data in self.scene_data:
+                current_node = data[0].head
+                while current_node:
+                    start, end = current_node.data
+                    scene_file.write(f"{start} {end} ")
+                    current_node = current_node.next
+                scene_file.write("\n")
 
-    def merge (self):
-        selected_scenes_data = self.get_selected_scenes_data()
-        if len(selected_scenes_data) < 2:
-            print ("Select at least two scenes")
-            return
-        
-        resulting_name = ""
-        
-        new_macroscene = LinkedList()
-        for data in selected_scenes_data:
-            current_node = data[0].head
-            button = data[1].findChild(QPushButton)
-            resulting_name += ("  " + button.text())
-            while current_node:
-                new_macroscene.append_to_list(current_node.data)
-                current_node = current_node.next
 
-        # remove the initial two spaces
-        resulting_name = resulting_name[2:]
-
-        resulting_scene_data = selected_scenes_data[0]
-        container = resulting_scene_data[1]
-        button = container.findChild(QPushButton)
-        button.setText(resulting_name)
-
-        checkbox = container.findChild(QCheckBox)
-        checkbox.setChecked(False)
-        resulting_scene_data[0] = new_macroscene
-
-        for data in selected_scenes_data[1:]: # work with a copy of the list for deleting elements
-            self.remove_container_from_layout(data[1], self.scroll_layout)
-            self.scene_data.remove(data)
-
-# Create the application and main window, then run the application
-app = QApplication(sys.argv)
-window = MainWindow()
-window.show()
-app.exec()
+if __name__ == "__main__":
+    # Create the application and main window, then run the application
+    app = QApplication(sys.argv)
+    window = MainWindow()
+    window.show()
+    app.exec()
