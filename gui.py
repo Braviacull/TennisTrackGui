@@ -15,7 +15,12 @@ import vlc
 
 from video_operations import *
 from obtain_directory import *
-from linked_list import Node, LinkedList
+from play import *
+from linked_list import LinkedList, Node
+from utils import (
+    get_selected_scenes_data, remove_container_from_layout, activate_buttons,
+    clear_layout
+)
 
 class ProcessingThread(QThread):
     def __init__(self, scene_path, output_path):
@@ -188,19 +193,111 @@ class MainWindow(QMainWindow):
         self.scroll_area.setWidget(self.scroll_content)
         self.splitter.addWidget(self.scroll_area)
 
-    def get_selected_scenes_data(self):
-        selected_scenes_data = []
-        for data in self.scene_data:
-            if data[2]:
-                selected_scenes_data.append(data)
-        return selected_scenes_data
+    def video_slider_touched(self):
+        time = frame_to_time(self.video_slider.value(), self.frame_rate)
+        self.mediaplayer.set_time(time)
+        if self.mediaplayer.is_playing():
+            self.mediaplayer.pause()
+            self.timer.stop()
+            self.play_and_pause_button.setText("▶️")
     
-    def remove_container_from_layout(self, container, layout):
-        layout.removeWidget(container)
-        container.deleteLater()
+    def slider_moved(self):
+        frame = self.video_slider.value()
+        time = frame_to_time(frame, self.frame_rate)
+        self.mediaplayer.set_time(time)
+
+    def play_and_pause(self):
+        if self.mediaplayer.is_playing():
+            self.mediaplayer.pause()
+            self.timer.stop()
+            self.play_and_pause_button.setText("▶️")
+        elif not self.mediaplayer.is_playing():
+            self.mediaplayer.play()
+            self.timer.start(100)
+            self.play_and_pause_button.setText("⏸")
+
+    def update_frame_label(self, value):
+        self.frame_label.setText(f"Frame: {value}")
+
+    def check_scene(self, state):
+        container = self.sender().parentWidget()
+        for data in self.scene_data:
+            if data[1] == container:
+                data[2] = not data[2]
+
+    def play_macro_scene(self):
+        container = self.sender().parentWidget()
+        for data in self.scene_data:
+            if data[1] == container:
+                self.current_node = data[0].head
+
+        if self.current_node is None:
+            print ("Error: macroscene is None")
+            return
+        
+        play_scene(self)
+
+    def check_time(self):
+        epsilon = 0.01 # 10 ms for calculation errors
+        current_time = self.mediaplayer.get_time()
+        # print (f"Current time: {current_time} [ms]")
+        self.video_slider.setValue(time_to_frame(current_time, self.frame_rate))
+        if current_time >= (self.end_time - epsilon):
+            self.mediaplayer.pause()
+            self.timer.stop()
+            print ("Scene ended")
+            end = self.current_node.data[1]
+            self.video_slider.setValue(end)
+            play_next_scene(self)
+
+    def create_macroscene(self):  # self.scene_data = [[LinkedList, container, bool]]
+        data = []
+        scene_list = LinkedList()
+        # asks the user to enter the name of the macroscene
+        macroscene_name, ok = QInputDialog.getText(self, "Macroscene Name", "Enter the name of the macroscene:")
+        if not ok:
+            return
+        while True:
+            # asks the user to enter the start and end frame of the scene
+            start, ok = QInputDialog.getInt(self, "Start Frame", "Enter the start frame:", 0, 0, self.num_frames)
+            if not ok:
+                return
+            end, ok = QInputDialog.getInt(self, "End Frame", "Enter the end frame:", 0, 0, self.num_frames)
+            if not ok:
+                return
+            if start >= end:
+                print("Invalid scene: end frame must be greater than start frame")
+                return
+            scene = [start, end]
+            scene_list.append_to_list(scene)
+            # asks the user if he wants to add another scene to the macroscene
+            reply = QMessageBox.question(self, "Add another scene", "Do you want to add another scene to the macroscene?",
+                                        QMessageBox.Yes | QMessageBox.No)
+            if reply == QMessageBox.No:
+                break
+        print("Macroscene created")
+        data.append(scene_list)
+
+        container = QWidget()
+        container_layout = QHBoxLayout(container)
+        # create a button for the macroscene
+        button = QPushButton(macroscene_name)
+        button.clicked.connect(self.play_macro_scene)
+        container_layout.addWidget(button)
+        # create a checkbox for the macroscene
+        checkbox = QCheckBox()
+        checkbox.stateChanged.connect(self.check_scene)
+        container_layout.addWidget(checkbox)
+
+        data.append(container)
+
+        self.scroll_layout.addWidget(container)
+        self.scene_data.append(data)
+
+        data.append(False)
 
     def merge (self):
-        selected_scenes_data = self.get_selected_scenes_data()
+        selected_scenes_data = get_selected_scenes_data(self)
         if len(selected_scenes_data) < 2:
             print ("Select at least two scenes")
             return
@@ -229,50 +326,36 @@ class MainWindow(QMainWindow):
         resulting_scene_data[0] = new_macroscene
 
         for data in selected_scenes_data[1:]: # work with a copy of the list for deleting elements
-            self.remove_container_from_layout(data[1], self.scroll_layout)
+            remove_container_from_layout(data[1], self.scroll_layout)
             self.scene_data.remove(data)
 
-    def activate_buttons(self):
-        for button in self.buttons_to_activate:
-            button.setEnabled(True)
-
-    def play_and_pause(self):
-        if self.mediaplayer.is_playing():
-            self.mediaplayer.pause()
-            self.timer.stop()
-            self.play_and_pause_button.setText("▶️")
-        elif not self.mediaplayer.is_playing():
-            self.mediaplayer.play()
-            self.timer.start(100)
-            self.play_and_pause_button.setText("⏸")
-            
-    def video_slider_touched(self):
-        time = frame_to_time(self.video_slider.value(), self.frame_rate)
-        self.mediaplayer.set_time(time)
-        if self.mediaplayer.is_playing():
-            self.mediaplayer.pause()
-            self.timer.stop()
-            self.play_and_pause_button.setText("▶️")
-    
-    def slider_moved(self):
-        frame = self.video_slider.value()
-        time = frame_to_time(frame, self.frame_rate)
-        self.mediaplayer.set_time(time)
-
-    def update_frame_label(self, value):
-        self.frame_label.setText(f"Frame: {value}")
-
-    def clear_layout(self, layout):
-        while layout.count():
-            child = layout.takeAt(0)
-            if child.widget():
-                child.widget().deleteLater()
-
-    def check_scene(self, state):
-        container = self.sender().parentWidget()
+    def jolly(self): # self.scene_data = [[LinkedList, container, bool]]
         for data in self.scene_data:
-            if data[1] == container:
-                data[2] = not data[2]
+            list = data[0]
+            container = data[1]
+            button = container.findChild(QPushButton)
+            print (button.text())
+            list.print_list()
+            print (data[2])
+            print ("---")
+        print ("\n")
+
+    def select_and_play(self):
+        merged_scenes_macroscenes = LinkedList()
+        for data in self.scene_data:
+            if data[2]:
+                current_node = data[0].head
+                while current_node:
+                    merged_scenes_macroscenes.append_to_list(current_node.data)
+                    current_node = current_node.next
+
+        self.current_node = merged_scenes_macroscenes.head
+
+        if self.current_node is None:
+            print ("Select some checkboxes")
+            return
+
+        play_scene(self)
 
     def pre_processing(self):
         input_path = os.path.join(obtain_input_dir(self), self.base_name)
@@ -353,10 +436,10 @@ class MainWindow(QMainWindow):
 
             self.frame_rate = get_frame_rate(video_path)
 
-            self.clear_layout(self.scroll_layout) # clear the layout before loading new project
+            clear_layout(self.scroll_layout) # clear the layout before loading new project
             self.scene_data = [] # in this way, if you load more than once, the scene_data are not appended
 
-            self.activate_buttons()
+            activate_buttons(self.buttons_to_activate)
 
             with open(self.scene_file_path, "r") as scene_file:
                 for line in scene_file:
@@ -390,144 +473,6 @@ class MainWindow(QMainWindow):
                     self.scene_data.append(data)
 
             self.save_project()
-
-    def play_macro_scene(self):
-        container = self.sender().parentWidget()
-        for data in self.scene_data:
-            if data[1] == container:
-                self.current_node = data[0].head
-
-        if self.current_node is None:
-            print ("Error: macroscene is None")
-            return
-        
-        self.play_scene()
-
-    def play_scene(self):
-        
-        start, end = self.current_node.data
-        print (f"Playing segment {start}-{end}")
-        if start is None or end is None:
-            print ("Error: start is None or end is None")
-            return
-
-        self.play_and_pause_button.setEnabled(True)
-        self.play_and_pause_button.setText("⏸")
-        
-        self.video_slider.setRange(start, end)
-
-        # bind the vlc media player to the videoframe
-        if sys.platform.startswith('linux'):  # for Linux using the X Server
-            self.mediaplayer.set_xwindow(self.videoframe.winId())
-        elif sys.platform == "win32":  # for Windows
-            self.mediaplayer.set_hwnd(self.videoframe.winId()) # handle to the window
-        elif sys.platform == "darwin":  # for MacOS
-            self.mediaplayer.set_nsobject(int(self.videoframe.winId()))
-
-        start_time = frame_to_time(start, self.frame_rate)
-        self.end_time = frame_to_time(end, self.frame_rate)
-
-        if not self.mediaplayer.is_playing():
-            self.mediaplayer.play()
-        self.mediaplayer.set_time(start_time) # it only works if the video is playing and takes a float value (time) between 0 and 1
-
-        self.timer.start(100) # check the video time every 100 ms
-
-    def play_next_scene(self):
-        self.current_node = self.current_node.next # update the current node
-        if self.current_node is None:
-            print ("There are no more scenes")
-            self.play_and_pause_button.setEnabled(False)
-            self.play_and_pause_button.setText("Play/Pause")
-            return
-        self.play_scene()
-
-    def check_time(self):
-        epsilon = 0.01 # 10 ms for calculation errors
-        current_time = self.mediaplayer.get_time()
-        # print (f"Current time: {current_time} [ms]")
-        self.video_slider.setValue(time_to_frame(current_time, self.frame_rate))
-        if current_time >= (self.end_time - epsilon):
-            self.mediaplayer.pause()
-            self.timer.stop()
-            print ("Scene ended")
-            end = self.current_node.data[1]
-            self.video_slider.setValue(end)
-            self.play_next_scene()
-
-    def select_and_play(self):
-        merged_scenes_macroscenes = LinkedList()
-        for data in self.scene_data:
-            if data[2]:
-                current_node = data[0].head
-                while current_node:
-                    merged_scenes_macroscenes.append_to_list(current_node.data)
-                    current_node = current_node.next
-
-        self.current_node = merged_scenes_macroscenes.head
-
-        if self.current_node is None:
-            print ("Select some checkboxes")
-            return
-
-        self.play_scene()
-
-    def create_macroscene(self):  # self.scene_data = [[LinkedList, container, bool]]
-        data = []
-        scene_list = LinkedList()
-        # asks the user to enter the name of the macroscene
-        macroscene_name, ok = QInputDialog.getText(self, "Macroscene Name", "Enter the name of the macroscene:")
-        if not ok:
-            return
-        while True:
-            # asks the user to enter the start and end frame of the scene
-            start, ok = QInputDialog.getInt(self, "Start Frame", "Enter the start frame:", 0, 0, self.num_frames)
-            if not ok:
-                return
-            end, ok = QInputDialog.getInt(self, "End Frame", "Enter the end frame:", 0, 0, self.num_frames)
-            if not ok:
-                return
-            if start >= end:
-                print("Invalid scene: end frame must be greater than start frame")
-                return
-            scene = [start, end]
-            scene_list.append_to_list(scene)
-            # asks the user if he wants to add another scene to the macroscene
-            reply = QMessageBox.question(self, "Add another scene", "Do you want to add another scene to the macroscene?",
-                                        QMessageBox.Yes | QMessageBox.No)
-            if reply == QMessageBox.No:
-                break
-        print("Macroscene created")
-        data.append(scene_list)
-
-        container = QWidget()
-        container_layout = QHBoxLayout(container)
-        # create a button for the macroscene
-        button = QPushButton(macroscene_name)
-        button.clicked.connect(self.play_macro_scene)
-        container_layout.addWidget(button)
-        # create a checkbox for the macroscene
-        checkbox = QCheckBox()
-        checkbox.stateChanged.connect(self.check_scene)
-        container_layout.addWidget(checkbox)
-
-        data.append(container)
-
-        self.scroll_layout.addWidget(container)
-        self.scene_data.append(data)
-
-        data.append(False)
-
-    def jolly(self): # self.scene_data = [[LinkedList, container, bool]]cls
-        for data in self.scene_data:
-            list = data[0]
-            container = data[1]
-            button = container.findChild(QPushButton)
-            print (button.text())
-            list.print_list()
-            print (data[2])
-            print ("---")
-        print ("\n")
 
     def save_project(self):
         with open(self.scene_file_path, "w") as scene_file:

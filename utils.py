@@ -23,4 +23,24 @@ def scene_detect(path_video):
     scenes = [[x[0].frame_num, x[1].frame_num]for x in scene_list]    
     return scenes
 
+def get_selected_scenes_data(self):
+    selected_scenes_data = []
+    for data in self.scene_data:
+        if data[2]:
+            selected_scenes_data.append(data)
+    return selected_scenes_data
+
+def remove_container_from_layout(container, layout):
+        layout.removeWidget(container)
+        container.deleteLater()
+
+def activate_buttons(vec_of_buttons):
+        for button in vec_of_buttons:
+            button.setEnabled(True)
+
+def clear_layout(layout):
+    while layout.count():
+        child = layout.takeAt(0)
+        if child.widget():
+            child.widget().deleteLater()
 
