@@ -1,0 +1,11 @@
+# Escludere la cartella __pycache__
+__pycache__/
+
+# Escludere i file .pyc e .pyo
+*.pyc
+*.pyo
+*.pyd
+
+# Escludere i file di log e i profili di Python
+*.log
+*.prof
