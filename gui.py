@@ -426,6 +426,8 @@ class MainWindow(QMainWindow):
 
             activate_buttons(self.buttons_to_activate)
 
+
+            self.num_frames = 0
             with open(self.scene_file_path, "r") as scene_file:
                 for line in scene_file:
                     scenes = line.split()
@@ -435,6 +437,9 @@ class MainWindow(QMainWindow):
                     for i in range(0, len(scenes), 2):
                         start = int(scenes[i])
                         end = int(scenes[i + 1])
+
+                        # serve per la create macroscene
+                        self.num_frames = end
 
                         scene = [start, end]
                         macro_scene.append_to_list(scene)
