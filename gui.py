@@ -19,7 +19,7 @@ from play import *
 from linked_list import LinkedList, Node
 from utils import (
     get_selected_scenes_data, remove_container_from_layout, activate_buttons,
-    clear_layout
+    clear_layout, get_macro_scene_correct_name
 )
 
 class ProcessingThread(QThread):
@@ -178,7 +178,6 @@ class MainWindow(QMainWindow):
         self.frame_rate = None
         self.num_frames = None
         self.current_data = None # [LinkedList, container_widget, checked]
-        self.current_macroscene: LinkedList = None
         self.current_node = None
         self.end_time = None
         # Set a timer to check the video time
@@ -222,7 +221,6 @@ class MainWindow(QMainWindow):
         for data in self.scene_data:
             if data[1] == container: # uses container to recognize the scene
                 self.current_data = data
-                self.current_macroscene = data[0]
                 self.current_node = data[0].head
 
         if self.current_node is None:
@@ -333,26 +331,15 @@ class MainWindow(QMainWindow):
 
         self.current_node.set_data([start_frame, current_frame])
         second_scene = [current_frame + 1, end_frame]
-        self.current_macroscene.insert_after_node(self.current_node, second_scene)
+        self.current_data[0].insert_after_node(self.current_node, second_scene)
 
-        button_text = self.get_macro_scene_correct_name (self.current_macroscene.head)
+        button_text = get_macro_scene_correct_name(self.current_data[0].head)
 
         button = self.current_data[1].findChild(QPushButton)
         button.setText(button_text)
 
         self.play_and_pause_button.setEnabled(False)
         self.play_and_pause_button.setText("Play/Pause")
-
-    def get_macro_scene_correct_name (self, head):
-        resulting_name = ""
-        while (head is not None):
-            resulting_name += " | "
-            start = str(head.data[0])
-            end = str(head.data[1])
-            resulting_name += (start + "-" + end)
-            head = head.next
-
-        return resulting_name[3:]
         
     def jolly(self): # self.scene_data = [[LinkedList, container, bool]]
         for data in self.scene_data:

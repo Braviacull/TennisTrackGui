@@ -44,3 +44,14 @@ def clear_layout(layout):
         if child.widget():
             child.widget().deleteLater()
 
+def get_macro_scene_correct_name (head):
+    resulting_name = ""
+    while (head is not None):
+        resulting_name += " | "
+        start = str(head.data[0])
+        end = str(head.data[1])
+        resulting_name += (start + "-" + end)
+        head = head.next
+
+    return resulting_name[3:]
+
