@@ -147,6 +147,12 @@ class MainWindow(QMainWindow):
         self.buttons_layout.addWidget(self.merge_button)
         self.buttons_to_activate.append(self.merge_button)
         self.merge_button.setEnabled(False)
+        # Split button
+        self.split_button = QPushButton("Split")
+        self.split_button.clicked.connect(self.split) # TODO
+        self.buttons_layout.addWidget(self.split_button)
+        self.buttons_to_activate.append(self.split_button)
+        self.split_button.setEnabled(False)
         # Jolly button
         self.jolly_button = QPushButton("Jolly")
         self.jolly_button.clicked.connect(self.jolly)
@@ -162,16 +168,17 @@ class MainWindow(QMainWindow):
         self.base_name = None  # path del video pre-processato
 
         # Scene data MAIN DATA STRUCTURE
-        self.scene_data = [] # [LinkedList, container_widget, checked]
+        self.scene_data = [] # [[LinkedList, container_widget, checked]]
 
         # Gestione Threads e wait
         self.processing_threads = []
         self.condition = threading.Condition()
 
-        # video variables
         # video data
         self.frame_rate = None
         self.num_frames = None
+        self.current_data = None # [LinkedList, container_widget, checked]
+        self.current_macroscene: LinkedList = None
         self.current_node = None
         self.end_time = None
         # Set a timer to check the video time
@@ -213,7 +220,9 @@ class MainWindow(QMainWindow):
     def play_macro_scene(self):
         container = self.sender().parentWidget()
         for data in self.scene_data:
-            if data[1] == container:
+            if data[1] == container: # uses container to recognize the scene
+                self.current_data = data
+                self.current_macroscene = data[0]
                 self.current_node = data[0].head
 
         if self.current_node is None:
@@ -314,6 +323,37 @@ class MainWindow(QMainWindow):
             remove_container_from_layout(data[1], self.scroll_layout)
             self.scene_data.remove(data)
 
+    def split(self):
+        if self.mediaplayer.is_playing(): # pause the video if necessary
+            self.play_and_pause()
+
+        start_frame = self.current_node.data[0]
+        current_frame = time_to_frame(self.mediaplayer.get_time(), self.frame_rate)
+        end_frame = self.current_node.data[1]
+
+        self.current_node.set_data([start_frame, current_frame])
+        second_scene = [current_frame + 1, end_frame]
+        self.current_macroscene.insert_after_node(self.current_node, second_scene)
+
+        button_text = self.get_macro_scene_correct_name (self.current_macroscene.head)
+
+        button = self.current_data[1].findChild(QPushButton)
+        button.setText(button_text)
+
+        self.play_and_pause_button.setEnabled(False)
+        self.play_and_pause_button.setText("Play/Pause")
+
+    def get_macro_scene_correct_name (self, head):
+        resulting_name = ""
+        while (head is not None):
+            resulting_name += " | "
+            start = str(head.data[0])
+            end = str(head.data[1])
+            resulting_name += (start + "-" + end)
+            head = head.next
+
+        return resulting_name[3:]
+        
     def jolly(self): # self.scene_data = [[LinkedList, container, bool]]
         for data in self.scene_data:
             list = data[0]
@@ -339,8 +379,10 @@ class MainWindow(QMainWindow):
         if self.current_node is None:
             print ("Select some checkboxes")
             return
-
+        
+        # disattiva il bottone split
         play_scene(self)
+        # riattiva il bottone split
 
     def pre_processing(self):
         input_path = os.path.join(obtain_input_dir(self), self.base_name)
@@ -426,7 +468,6 @@ class MainWindow(QMainWindow):
 
             activate_buttons(self.buttons_to_activate)
 
-
             self.num_frames = 0
             with open(self.scene_file_path, "r") as scene_file:
                 for line in scene_file:
@@ -463,6 +504,9 @@ class MainWindow(QMainWindow):
                     self.scene_data.append(data)
 
             self.save_project()
+
+            self.play_and_pause_button.setEnabled(False)
+            self.play_and_pause_button.setText("Play/Pause")
 
     def save_project(self):
         with open(self.scene_file_path, "w") as scene_file:

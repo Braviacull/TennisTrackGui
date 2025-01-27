@@ -1,6 +1,5 @@
 import sys
-from video_operations import frame_to_time, time_to_frame
-from linked_list import LinkedList
+from video_operations import frame_to_time
 
 def play_scene(self):
     
@@ -19,7 +18,7 @@ def play_scene(self):
     if sys.platform.startswith('linux'):  # for Linux using the X Server
         self.mediaplayer.set_xwindow(self.videoframe.winId())
     elif sys.platform == "win32":  # for Windows
-        self.mediaplayer.set_hwnd(self.videoframe.winId()) # handle to the window
+        self.mediaplayer.set_hwnd(self.videoframe.winId())
     elif sys.platform == "darwin":  # for MacOS
         self.mediaplayer.set_nsobject(int(self.videoframe.winId()))
 

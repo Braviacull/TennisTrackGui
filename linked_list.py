@@ -2,6 +2,8 @@ class Node:
     def __init__(self, data):
         self.data = data
         self.next = None
+    def set_data(self, new_data):
+        self.data = new_data
 
 class LinkedList:
     def __init__(self):
@@ -27,13 +29,12 @@ class LinkedList:
 
         if self.head is None:
             self.head = new_node
-            return
+        elif self.head is not None:
+            last_node = self.head
+            while last_node.next:
+                last_node = last_node.next
 
-        last_node = self.head
-        while last_node.next:
-            last_node = last_node.next
-
-        last_node.next = new_node
+            last_node.next = new_node
 
     # Add a Node at the beginning of the list
     def preappend(self, data):
@@ -44,7 +45,7 @@ class LinkedList:
     # Insert a Node in the middle of the list
     def insert_after_node(self, prev_node, data):
         if not prev_node:
-            print("Previous Node Not Exist in the list")
+            print("Previous Node Not present in the list")
             return
         new_node = Node(data)
         new_node.next = prev_node.next
@@ -74,4 +75,3 @@ class LinkedList:
         while current:
             print(current.data)
             current = current.next
-
