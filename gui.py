@@ -3,6 +3,8 @@ import sys
 import subprocess
 import shutil
 import threading
+import tkinter as tk
+from tkinter import simpledialog
 
 from PySide6.QtWidgets import (
     QMainWindow, QWidget, QVBoxLayout, QPushButton, QScrollArea, QHBoxLayout, 
@@ -387,7 +389,15 @@ class MainWindow(QMainWindow):
             "--path_output_video", output_path,
             "--path_scene_file", self.scene_file_path
         ]
-        subprocess.run(command)
+
+        def run_subprocess():
+            subprocess.run(command)
+        
+        thread = threading.Thread(target=run_subprocess)
+        thread.start()
+
+        # Wait for the thread to finish
+        thread.join()
 
     def create_new_project(self):
         project_name, ok = QInputDialog.getText(self, "New Project", "Enter project name:")
