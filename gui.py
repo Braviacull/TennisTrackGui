@@ -7,8 +7,7 @@ import vlc
 
 from PySide6.QtWidgets import (
     QMainWindow, QWidget, QVBoxLayout, QPushButton, QScrollArea, QHBoxLayout, 
-    QSlider, QFileDialog, QLabel, QApplication, QSplitter, QInputDialog, 
-    QMenu, QCheckBox, QMessageBox
+    QSlider, QFileDialog, QLabel, QApplication, QSplitter, QInputDialog, QCheckBox, QMessageBox
 )
 from PySide6.QtCore import Qt, QThread, QTimer
 
@@ -16,7 +15,7 @@ from costants import *
 from video_operations import *
 from obtain_directory import *
 from play import *
-from linked_list import LinkedList, Node
+from linked_list import LinkedList
 from utils import (
     get_selected_scenes_data, remove_container_from_layout, activate_buttons, deactivate_buttons,
     clear_layout, get_macro_scene_correct_name
@@ -46,7 +45,7 @@ class ProcessingThread(QThread):
         ]
         subprocess.run(command)
 
-        self.application.setWindowTitle("PREPROCESSED, PLEASE RELOAD THE PROJECT")
+        self.application.setWindowTitle("PROCESSED, PLEASE RELOAD THE PROJECT TO SEE THE CHANGES")
 
 class CommandThread(QThread):
     def __init__(self, command):
@@ -416,9 +415,7 @@ class MainWindow(QMainWindow):
         self.setWindowTitle("TennisTrack")
 
     def start_processing_thread(self):
-        # creo una copia da processare, cosí il programma puó continuare ad usare il video preprocessato
-        shutil.copy(os.path.join(obtain_output_dir(self), PRE_PROCESSED), obtain_input_dir(self))
-        input_path = os.path.join(obtain_input_dir(self), PRE_PROCESSED)
+        input_path = os.path.join(obtain_output_dir(self), PRE_PROCESSED)
         output_path = os.path.join(obtain_output_dir(self), PROCESSED)
         processing_thread = ProcessingThread(input_path, output_path, self)
         self.processing_threads.append(processing_thread)  # Aggiungi il thread alla lista
