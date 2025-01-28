@@ -3,6 +3,7 @@ import sys
 import subprocess
 import shutil
 import threading
+import vlc
 
 from PySide6.QtWidgets import (
     QMainWindow, QWidget, QVBoxLayout, QPushButton, QScrollArea, QHBoxLayout, 
@@ -11,8 +12,7 @@ from PySide6.QtWidgets import (
 )
 from PySide6.QtCore import Qt, QThread, QTimer
 
-import vlc
-
+from costants import *
 from video_operations import *
 from obtain_directory import *
 from play import *
@@ -23,12 +23,15 @@ from utils import (
 )
 
 class ProcessingThread(QThread):
-    def __init__(self, scene_path, output_path):
+    def __init__(self, input_path, output_path, application):
         super().__init__()
-        self.scene_path = scene_path
+        self.input_path = input_path
         self.output_path = output_path
+        self.application = application
 
     def run(self):
+        self.application.setWindowTitle("PROCESSING. THIS MAY TAKE A WHILE, YOU CAN CONTINUE USING THE APPLICATION...")
+
         ball_model_path = "model_best.pt"
         court_model_path = "model_tennis_court_det.pt"
         bounce_model_path = "ctb_regr_bounce.cbm"
@@ -38,13 +41,12 @@ class ProcessingThread(QThread):
             "--path_ball_track_model", ball_model_path,
             "--path_court_model", court_model_path,
             "--path_bounce_model", bounce_model_path,
-            "--path_input_video", self.scene_path,
+            "--path_input_video", self.input_path,
             "--path_output_video", self.output_path
         ]
         subprocess.run(command)
 
-        os.remove(self.scene_path)
-        os.rename(self.output_path, self.scene_path)
+        self.application.setWindowTitle("PREPROCESSED, PLEASE RELOAD THE PROJECT")
 
 class CommandThread(QThread):
     def __init__(self, command):
@@ -138,6 +140,12 @@ class MainWindow(QMainWindow):
         self.buttons_layout.addWidget(self.save_project_button)
         self.buttons_to_activate.append(self.save_project_button)
         self.save_project_button.setEnabled(False)
+        # Process button
+        self.process_button = QPushButton("Process")
+        self.process_button.clicked.connect(self.start_processing_thread)
+        self.buttons_layout.addWidget(self.process_button)
+        self.buttons_to_activate.append(self.process_button)
+        self.process_button.setEnabled(False)
         # Play selected scenes button
         self.play_selected_button = QPushButton("Play Selected")
         self.play_selected_button.clicked.connect(self.select_and_play)
@@ -193,6 +201,9 @@ class MainWindow(QMainWindow):
         # Set a timer to check the video time
         self.timer = QTimer(self)
         self.timer.timeout.connect(self.check_time)
+
+        # Gestione Threads
+        self.processing_threads = []
 
     def video_slider_touched(self):
         time = frame_to_time(self.video_slider.value(), self.frame_rate)
@@ -383,7 +394,7 @@ class MainWindow(QMainWindow):
 
     def pre_processing(self):
         input_path = os.path.join(obtain_input_dir(self), self.base_name)
-        output_path = os.path.join(obtain_output_dir(self), self.base_name)
+        output_path = os.path.join(obtain_output_dir(self), PRE_PROCESSED)
         if not os.path.isfile(input_path):
             print("Input file not found")
             return
@@ -403,6 +414,15 @@ class MainWindow(QMainWindow):
         subprocess.run(command)
 
         self.setWindowTitle("TennisTrack")
+
+    def start_processing_thread(self):
+        # creo una copia da processare, cosí il programma puó continuare ad usare il video preprocessato
+        shutil.copy(os.path.join(obtain_output_dir(self), PRE_PROCESSED), obtain_input_dir(self))
+        input_path = os.path.join(obtain_input_dir(self), PRE_PROCESSED)
+        output_path = os.path.join(obtain_output_dir(self), PROCESSED)
+        processing_thread = ProcessingThread(input_path, output_path, self)
+        self.processing_threads.append(processing_thread)  # Aggiungi il thread alla lista
+        processing_thread.start()
 
     def create_new_project(self):
         project_name, ok = QInputDialog.getText(self, "New Project", "Enter project name:")
@@ -429,7 +449,7 @@ class MainWindow(QMainWindow):
                 self.base_name = os.path.basename(input_video_path)
                 shutil.copy(input_video_path, obtain_input_dir(self))
                 self.pre_processing()
-                self.load_project(project_path)
+                self.load_project(self.project_path)
 
     def load_project(self, project_path=None):
         if not project_path:
@@ -437,7 +457,12 @@ class MainWindow(QMainWindow):
         if project_path:
             self.project_path = project_path
             self.scene_file_path = os.path.join(self.project_path, "scenes.txt")
-            self.base_name = os.listdir(obtain_output_dir(self))[0]
+            self.base_name = PRE_PROCESSED
+            
+            # If the processed video exists, set it as the base name
+            processed_path = os.path.join(obtain_output_dir(self), PROCESSED)
+            if os.path.isfile(processed_path):
+                self.base_name = PROCESSED
 
             video_path = os.path.join(obtain_output_dir(self), self.base_name)
             self.media = self.istance.media_new(video_path)
