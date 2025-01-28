@@ -3,8 +3,6 @@ import sys
 import subprocess
 import shutil
 import threading
-import tkinter as tk
-from tkinter import simpledialog
 
 from PySide6.QtWidgets import (
     QMainWindow, QWidget, QVBoxLayout, QPushButton, QScrollArea, QHBoxLayout, 
@@ -20,7 +18,7 @@ from obtain_directory import *
 from play import *
 from linked_list import LinkedList, Node
 from utils import (
-    get_selected_scenes_data, remove_container_from_layout, activate_buttons,
+    get_selected_scenes_data, remove_container_from_layout, activate_buttons, deactivate_buttons,
     clear_layout, get_macro_scene_correct_name
 )
 
@@ -47,6 +45,14 @@ class ProcessingThread(QThread):
 
         os.remove(self.scene_path)
         os.rename(self.output_path, self.scene_path)
+
+class CommandThread(QThread):
+    def __init__(self, command):
+        super().__init__()
+        self.command = command
+
+    def run(self):
+        subprocess.run(self.command)
 
 class MainWindow(QMainWindow):
     def __init__(self):
@@ -115,6 +121,7 @@ class MainWindow(QMainWindow):
         # BUTTONS
         # Create a list of buttons to activate
         self.buttons_to_activate = []
+        self.buttons = []
         # Create a horizontal layout for the buttons
         self.buttons_layout = QHBoxLayout()
         # New project button
@@ -161,6 +168,7 @@ class MainWindow(QMainWindow):
         self.buttons_layout.addWidget(self.jolly_button)
         self.buttons_to_activate.append(self.jolly_button)
         self.jolly_button.setEnabled(False)
+
         # Add the buttons layout to the main layout
         self.layout.addLayout(self.buttons_layout)
 
@@ -390,14 +398,11 @@ class MainWindow(QMainWindow):
             "--path_scene_file", self.scene_file_path
         ]
 
-        def run_subprocess():
-            subprocess.run(command)
-        
-        thread = threading.Thread(target=run_subprocess)
-        thread.start()
+        self.setWindowTitle("PREPROCESSING. THIS MAY TAKE A WHILE, PLEASE WAIT...")
 
-        # Wait for the thread to finish
-        thread.join()
+        subprocess.run(command)
+
+        self.setWindowTitle("TennisTrack")
 
     def create_new_project(self):
         project_name, ok = QInputDialog.getText(self, "New Project", "Enter project name:")

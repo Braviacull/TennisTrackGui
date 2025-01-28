@@ -31,12 +31,16 @@ def get_selected_scenes_data(self):
     return selected_scenes_data
 
 def remove_container_from_layout(container, layout):
-        layout.removeWidget(container)
-        container.deleteLater()
+    layout.removeWidget(container)
+    container.deleteLater()
 
 def activate_buttons(vec_of_buttons):
-        for button in vec_of_buttons:
-            button.setEnabled(True)
+    for button in vec_of_buttons:
+        button.setEnabled(True)
+
+def deactivate_buttons(vec_of_buttons):
+    for button in vec_of_buttons:
+        button.setEnabled(False)
 
 def clear_layout(layout):
     while layout.count():
