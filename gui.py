@@ -423,6 +423,8 @@ class MainWindow(QMainWindow):
         if self.mediaplayer.is_playing(): # pause the video if necessary
             self.play_and_pause()
 
+        
+
         start_frame = self.current_node.data[0]
         current_frame = time_to_frame(self.mediaplayer.get_time(), self.frame_rate)
         end_frame = self.current_node.data[1]
@@ -436,8 +438,13 @@ class MainWindow(QMainWindow):
         button = self.current_data[1].findChild(QPushButton)
         button.setText(button_text)
 
+        self.deselect_all()
+        self.current_data[2] = True
+        self.ungroup()
+        self.delete_selected()
+
         self.play_and_pause_button.setEnabled(False)
-        self.play_and_pause_button.setText("Play/Pause")
+        self.play_and_pause_button.setText("Play/Pause")        
         
     def jolly(self): # self.scene_data = [[LinkedList, container, bool]]
         for data in self.scene_data:
