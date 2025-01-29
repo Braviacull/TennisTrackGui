@@ -155,6 +155,12 @@ class MainWindow(QMainWindow):
         self.buttons_layout.addWidget(self.play_selected_button)
         self.buttons_to_activate.append(self.play_selected_button)
         self.play_selected_button.setEnabled(False)
+        # Delete selected scenes button
+        self.delete_selected_button = QPushButton("Delete Selected")
+        self.delete_selected_button.clicked.connect(self.delete_selected)
+        self.buttons_layout.addWidget(self.delete_selected_button)
+        self.buttons_to_activate.append(self.delete_selected_button)
+        self.delete_selected_button.setEnabled(False)
         # Create macroscene button
         self.create_macroscene_button = QPushButton("Create Macroscene")
         self.create_macroscene_button.clicked.connect(self.obtain_scene_list)
@@ -173,6 +179,12 @@ class MainWindow(QMainWindow):
         self.buttons_layout.addWidget(self.group_button)
         self.buttons_to_activate.append(self.group_button)
         self.group_button.setEnabled(False)
+        # Ungroup button
+        self.ungroup_button = QPushButton("Ungroup")
+        self.ungroup_button.clicked.connect(self.ungroup)
+        self.buttons_layout.addWidget(self.ungroup_button)
+        self.buttons_to_activate.append(self.ungroup_button)
+        self.ungroup_button.setEnabled(False)
         # Split button
         self.split_button = QPushButton("Split")
         self.split_button.clicked.connect(self.split) # TODO
@@ -358,6 +370,22 @@ class MainWindow(QMainWindow):
 
         self.create_macroscene(new_macroscene, resulting_name, 0)
 
+    def ungroup (self):
+        selected_scenes_data = get_selected_scenes_data(self)
+        for data in selected_scenes_data:
+            position = self.scene_data.index(data)
+            head = data[0].head # Node
+            while head:
+                scene_list = LinkedList()
+                scene_list.append_to_list(head.data)
+
+                name = f"{head.data[0]}-{head.data[1]}"
+                
+                position += 1
+
+                self.create_macroscene(scene_list, name, position)
+                head = head.next
+
     def merge (self):
         selected_scenes_data = get_selected_scenes_data(self)
         if len(selected_scenes_data) < 2:
@@ -440,6 +468,12 @@ class MainWindow(QMainWindow):
         # disattiva il bottone split
         play_scene(self)
         # riattiva il bottone split
+
+    def delete_selected(self):
+        selected_scenes_data = get_selected_scenes_data(self)
+        for data in selected_scenes_data:
+            remove_container_from_layout(data[1], self.scroll_layout)
+            self.scene_data.remove(data)
 
     def select_all(self):
         for data in self.scene_data:
