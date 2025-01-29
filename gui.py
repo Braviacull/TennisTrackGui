@@ -208,6 +208,7 @@ class MainWindow(QMainWindow):
 
         # Scene data MAIN DATA STRUCTURE
         self.scene_data = [] # [[LinkedList, container_widget, checked]]
+        self.modified = False
 
         # Gestione Threads e wait
         self.processing_threads = []
@@ -225,6 +226,28 @@ class MainWindow(QMainWindow):
 
         # Gestione Threads
         self.processing_threads = []
+
+    def ask_for_save(self):
+        if not self.modified:
+            return True
+        reply = QMessageBox.question(self, 'Save Project',
+                                     "Do you want to save the project before closing?",
+                                     QMessageBox.Yes | QMessageBox.No | QMessageBox.Cancel,
+                                     QMessageBox.Cancel)
+
+        if reply == QMessageBox.Yes:
+            self.save_project()
+            return True
+        elif reply == QMessageBox.No:
+            return True
+        else:
+            return False
+
+    def closeEvent(self, event):
+        if self.ask_for_save():
+            event.accept()
+        else:
+            event.ignore()
 
     def video_slider_touched(self):
         time = frame_to_time(self.video_slider.value(), self.frame_rate)
@@ -347,6 +370,7 @@ class MainWindow(QMainWindow):
         
         # Insert the macroscene data into the scene_data list at the specified position
         self.scene_data.insert(position, data)
+        self.modified = True
 
     def group (self):
         selected_scenes_data = get_selected_scenes_data(self)
@@ -418,6 +442,7 @@ class MainWindow(QMainWindow):
         for data in selected_scenes_data[1:]: # work with a copy of the list for deleting elements
             remove_container_from_layout(data[1], self.scroll_layout)
             self.scene_data.remove(data)
+            self.modified = True
 
     def split(self):
         if self.mediaplayer.is_playing(): # pause the video if necessary
@@ -481,6 +506,7 @@ class MainWindow(QMainWindow):
         for data in selected_scenes_data:
             remove_container_from_layout(data[1], self.scroll_layout)
             self.scene_data.remove(data)
+        self.modified = True
 
     def select_all(self):
         for data in self.scene_data:
@@ -523,6 +549,9 @@ class MainWindow(QMainWindow):
         processing_thread.start()
 
     def create_new_project(self):
+        ok = self.ask_for_save()
+        if not ok:
+            return
         project_name, ok = QInputDialog.getText(self, "New Project", "Enter project name:")
         project_path = os.path.join("Projects", project_name)
         if os.path.isdir(project_path) and ok:
@@ -550,7 +579,10 @@ class MainWindow(QMainWindow):
                 self.load_project(self.project_path)
 
     def load_project(self, project_path=None):
-        if not project_path:
+        if not project_path: # if the load project button is clicked
+            ok = self.ask_for_save()
+            if not ok:
+                return
             project_path = QFileDialog.getExistingDirectory(self, "Select Project Directory", "projects")
         if project_path:
             self.project_path = project_path
@@ -634,14 +666,16 @@ class MainWindow(QMainWindow):
             self.play_and_pause_button.setText("Play/Pause")
 
     def save_project(self):
-        with open(self.scene_file_path, "w") as scene_file:
-            for data in self.scene_data:
-                current_node = data[0].head
-                while current_node:
-                    start, end = current_node.data
-                    scene_file.write(f"{start} {end} ")
-                    current_node = current_node.next
-                scene_file.write("\n")
+        if self.project_path:
+            with open(self.scene_file_path, "w") as scene_file:
+                for data in self.scene_data:
+                    current_node = data[0].head
+                    while current_node:
+                        start, end = current_node.data
+                        scene_file.write(f"{start} {end} ")
+                        current_node = current_node.next
+                    scene_file.write("\n")
+            self.modified = False
 
 if __name__ == "__main__":
     # Create the application and main window, then run the application
