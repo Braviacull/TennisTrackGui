@@ -157,7 +157,7 @@ class MainWindow(QMainWindow):
         self.play_selected_button.setEnabled(False)
         # Create macroscene button
         self.create_macroscene_button = QPushButton("Create Macroscene")
-        self.create_macroscene_button.clicked.connect(self.create_macroscene)
+        self.create_macroscene_button.clicked.connect(self.obtain_scene_list)
         self.buttons_layout.addWidget(self.create_macroscene_button)
         self.buttons_to_activate.append(self.create_macroscene_button)
         self.create_macroscene_button.setEnabled(False)
@@ -167,6 +167,12 @@ class MainWindow(QMainWindow):
         self.buttons_layout.addWidget(self.merge_button)
         self.buttons_to_activate.append(self.merge_button)
         self.merge_button.setEnabled(False)
+        # Group button
+        self.group_button = QPushButton("Group")
+        self.group_button.clicked.connect(self.group)
+        self.buttons_layout.addWidget(self.group_button)
+        self.buttons_to_activate.append(self.group_button)
+        self.group_button.setEnabled(False)
         # Split button
         self.split_button = QPushButton("Split")
         self.split_button.clicked.connect(self.split) # TODO
@@ -267,7 +273,7 @@ class MainWindow(QMainWindow):
             self.video_slider.setValue(end)
             play_next_scene(self)
 
-    def create_macroscene(self):  # self.scene_data = [[LinkedList, container, bool]]
+    def obtain_scene_list(self):  # self.scene_data = [[LinkedList, container, bool]]
         data = []
         scene_list = LinkedList()
         # asks the user to enter the name of the macroscene
@@ -295,23 +301,62 @@ class MainWindow(QMainWindow):
         print("Macroscene created")
         data.append(scene_list)
 
+        self.create_macroscene(scene_list, macroscene_name, 0)
+
+    def create_macroscene(self, scene_list, name, position):
+        # Create a list to hold the macroscene data
+        data = []
+        
+        # Add the scene list to the data list
+        data.append(scene_list)
+        
+        # Create a container widget for the button and checkbox
         container = QWidget()
         container_layout = QHBoxLayout(container)
-        # create a button for the macroscene
-        button = QPushButton(macroscene_name)
+        
+        # Create a button with the name of the macroscene and connect its clicked signal
+        button = QPushButton(name)
         button.clicked.connect(self.play_macro_scene)
         container_layout.addWidget(button)
-        # create a checkbox for the macroscene
+        
+        # Create a checkbox and connect its stateChanged signal
         checkbox = QCheckBox()
         checkbox.stateChanged.connect(self.check_scene)
         container_layout.addWidget(checkbox)
-
+        
+        # Add the container to the data list
         data.append(container)
-
-        self.scroll_layout.addWidget(container)
-        self.scene_data.append(data)
-
+        
+        # Insert the container into the scroll_layout at the specified position
+        self.scroll_layout.insertWidget(position, container)
+        
+        # Add a boolean value to indicate whether the scene is selected
         data.append(False)
+        
+        # Insert the macroscene data into the scene_data list at the specified position
+        self.scene_data.insert(position, data)
+
+    def group (self):
+        selected_scenes_data = get_selected_scenes_data(self)
+        if len(selected_scenes_data) < 2:
+            print ("Select at least two scenes")
+            return
+        
+        resulting_name = ""
+        
+        new_macroscene = LinkedList()
+        for data in selected_scenes_data:
+            current_node = data[0].head
+            button = data[1].findChild(QPushButton)
+            resulting_name += (" | " + button.text())
+            while current_node:
+                new_macroscene.append_to_list(current_node.data)
+                current_node = current_node.next
+
+        # remove the initial two spaces
+        resulting_name = resulting_name[3:]
+
+        self.create_macroscene(new_macroscene, resulting_name, 0)
 
     def merge (self):
         selected_scenes_data = get_selected_scenes_data(self)
@@ -325,13 +370,13 @@ class MainWindow(QMainWindow):
         for data in selected_scenes_data:
             current_node = data[0].head
             button = data[1].findChild(QPushButton)
-            resulting_name += ("  " + button.text())
+            resulting_name += (" | " + button.text())
             while current_node:
                 new_macroscene.append_to_list(current_node.data)
                 current_node = current_node.next
 
         # remove the initial two spaces
-        resulting_name = resulting_name[2:]
+        resulting_name = resulting_name[3:]
 
         resulting_scene_data = selected_scenes_data[0]
         container = resulting_scene_data[1]
