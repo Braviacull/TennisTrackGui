@@ -45,15 +45,7 @@ class ProcessingThread(QThread):
         ]
         subprocess.run(command)
 
-        self.application.setWindowTitle("PROCESSED, PLEASE RELOAD THE PROJECT TO SEE THE CHANGES")
-
-class CommandThread(QThread):
-    def __init__(self, command):
-        super().__init__()
-        self.command = command
-
-    def run(self):
-        subprocess.run(self.command)
+        self.application.setWindowTitle("PROCESSED, PLEASE RELOAD THE PROJECT TO SEE THE CHANGES, BUT REMEMBER TO SAVE IT FIRST")
 
 class MainWindow(QMainWindow):
     def __init__(self):
@@ -145,6 +137,18 @@ class MainWindow(QMainWindow):
         self.buttons_layout.addWidget(self.process_button)
         self.buttons_to_activate.append(self.process_button)
         self.process_button.setEnabled(False)
+        # Select all button
+        self.select_all_button = QPushButton("Select All")
+        self.select_all_button.clicked.connect(self.select_all)
+        self.buttons_layout.addWidget(self.select_all_button)
+        self.buttons_to_activate.append(self.select_all_button)
+        self.select_all_button.setEnabled(False)
+        # Deselect all button
+        self.deselect_all_button = QPushButton("Deselect All")
+        self.deselect_all_button.clicked.connect(self.deselect_all)
+        self.buttons_layout.addWidget(self.deselect_all_button)
+        self.buttons_to_activate.append(self.deselect_all_button)
+        self.deselect_all_button.setEnabled(False)
         # Play selected scenes button
         self.play_selected_button = QPushButton("Play Selected")
         self.play_selected_button.clicked.connect(self.select_and_play)
@@ -235,6 +239,7 @@ class MainWindow(QMainWindow):
         for data in self.scene_data:
             if data[1] == container:
                 data[2] = not data[2]
+                break
 
     def play_macro_scene(self):
         container = self.sender().parentWidget()
@@ -391,6 +396,16 @@ class MainWindow(QMainWindow):
         play_scene(self)
         # riattiva il bottone split
 
+    def select_all(self):
+        for data in self.scene_data:
+            checkbox = data[1].findChild(QCheckBox)
+            checkbox.setChecked(True)
+
+    def deselect_all(self):
+        for data in self.scene_data:
+            checkbox = data[1].findChild(QCheckBox)
+            checkbox.setChecked(False)
+        
     def pre_processing(self):
         input_path = os.path.join(obtain_input_dir(self), self.base_name)
         output_path = os.path.join(obtain_output_dir(self), PRE_PROCESSED)
@@ -418,7 +433,7 @@ class MainWindow(QMainWindow):
         input_path = os.path.join(obtain_output_dir(self), PRE_PROCESSED)
         output_path = os.path.join(obtain_output_dir(self), PROCESSED)
         processing_thread = ProcessingThread(input_path, output_path, self)
-        self.processing_threads.append(processing_thread)  # Aggiungi il thread alla lista
+        self.processing_threads.append(processing_thread)  # need to keep a reference to the thread
         processing_thread.start()
 
     def create_new_project(self):
