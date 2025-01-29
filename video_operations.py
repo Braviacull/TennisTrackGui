@@ -1,7 +1,6 @@
 import cv2
 import numpy as np
 
-
 # Funzione per leggere un video e restituire i frame e il frame rate
 def read_video(path_video):
     cap = cv2.VideoCapture(path_video)

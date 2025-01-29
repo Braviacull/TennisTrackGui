@@ -187,10 +187,16 @@ class MainWindow(QMainWindow):
         self.ungroup_button.setEnabled(False)
         # Split button
         self.split_button = QPushButton("Split")
-        self.split_button.clicked.connect(self.split) # TODO
+        self.split_button.clicked.connect(self.split)
         self.buttons_layout.addWidget(self.split_button)
         self.buttons_to_activate.append(self.split_button)
         self.split_button.setEnabled(False)
+        # Generate video button
+        self.generate_video_button = QPushButton("Generate Video")
+        self.generate_video_button.clicked.connect(self.generate_video)
+        self.buttons_layout.addWidget(self.generate_video_button)
+        self.buttons_to_activate.append(self.generate_video_button)
+        self.generate_video_button.setEnabled(False)
         # Jolly button
         self.jolly_button = QPushButton("Jolly")
         self.jolly_button.clicked.connect(self.jolly)
@@ -470,7 +476,59 @@ class MainWindow(QMainWindow):
 
         self.play_and_pause_button.setEnabled(False)
         self.play_and_pause_button.setText("Play/Pause")        
+
+    def generate_video(self):
+        if (self.frame_rate is None):
+            print ("Error: frame rate is None")
+            return
         
+        project_dir = obtain_project_dir(self) # here we will save the video
+        
+        while(True):
+            output_name, ok = QInputDialog.getText(self, "Generate Video", "Enter video name:")
+            if not ok:
+                return
+            output_name = output_name + ".mp4"
+            if (os.path.isfile(os.path.join(project_dir, output_name))):
+                print ("File already exists, choose another name")
+            else:
+                break
+
+        base_name = obtain_base_name(self)
+        input_video_path = os.path.join(obtain_output_dir(self), base_name)
+        output_video_path = os.path.join(project_dir, output_name)
+
+        selected_scenes_data = get_selected_scenes_data(self)
+        frames = []
+        for data in selected_scenes_data:
+            current_node = data[0].head
+            while current_node:
+                frames.extend(range(current_node.data[0], current_node.data[1] + 1))
+                current_node = current_node.next
+
+        # Open the original video
+        cap = cv2.VideoCapture(input_video_path)
+        if not cap.isOpened():
+            print("Error: Could not open video.")
+            return
+        
+        # Read the selected frames
+        imgs_res = []
+        for frame_number in frames:
+            cap.set(cv2.CAP_PROP_POS_FRAMES, frame_number)
+            ret, frame = cap.read()
+            if ret:
+                imgs_res.append(frame)
+            else:
+                print(f"Error: Could not read frame {frame_number}.")
+
+        # Release the video capture object
+        cap.release()
+
+        # Write the frames to the new video using the write function
+        write(imgs_res, self.frame_rate, output_video_path)
+        print(f"Video saved to {output_video_path}")
+
     def jolly(self): # self.scene_data = [[LinkedList, container, bool]]
         for data in self.scene_data:
             list = data[0]
@@ -587,12 +645,7 @@ class MainWindow(QMainWindow):
         if project_path:
             self.project_path = project_path
             self.scene_file_path = os.path.join(self.project_path, "scenes.txt")
-            self.base_name = PRE_PROCESSED
-            
-            # If the processed video exists, set it as the base name
-            processed_path = os.path.join(obtain_output_dir(self), PROCESSED)
-            if os.path.isfile(processed_path):
-                self.base_name = PROCESSED
+            self.base_name = obtain_base_name(self)
 
             video_path = os.path.join(obtain_output_dir(self), self.base_name)
             self.media = self.istance.media_new(video_path)
