@@ -167,7 +167,7 @@ class MainWindow(QMainWindow):
         self.buttons_to_deactivate.append(self.delete_selected_button)
         # Create macroscene button
         self.create_macroscene_button = QPushButton("Create Macroscene")
-        self.create_macroscene_button.clicked.connect(self.obtain_scene_list)
+        self.create_macroscene_button.clicked.connect(self.obtain_scene_list_and_create_macroscene)
         self.buttons_layout.addWidget(self.create_macroscene_button)
         self.buttons_to_activate.append(self.create_macroscene_button)
         self.create_macroscene_button.setEnabled(False)
@@ -219,6 +219,7 @@ class MainWindow(QMainWindow):
         # Directories, paths and base names
         self.project_path = None
         self.scene_file_path = None  # path del file scenes.txt
+        self.points_file_path = None  # path del file points.txt
         self.base_name = None  # path del video pre-processato
 
         # Scene data MAIN DATA STRUCTURE
@@ -276,10 +277,8 @@ class MainWindow(QMainWindow):
         msg_box.exec()
         
         if msg_box.clickedButton() == player1_button:
-            print(self.player1 + " won the point")
             return 1
         elif msg_box.clickedButton() == player2_button:
-            print(self.player2 + " won the point")
             return 2
         else:
             return None
@@ -349,7 +348,7 @@ class MainWindow(QMainWindow):
             self.video_slider.setValue(end)
             play_next_scene(self)
 
-    def obtain_scene_list(self):  # self.scene_data = [[LinkedList, container, bool]]
+    def obtain_scene_list_and_create_macroscene(self):  # self.scene_data = [[LinkedList, container, bool]]
         data = []
         scene_list = LinkedList()
         # asks the user to enter the name of the macroscene
@@ -445,12 +444,11 @@ class MainWindow(QMainWindow):
     def set_point_menu_action(self, button):
         data = get_data_from_button(self, button)
         winner = data[3]
+        winner = self.ask_for_player()
         if winner is None:
-            winner = self.ask_for_player()
-            if winner is None:
-                return
-        
+            return
         data[3] = winner
+        self.modified = True
 
     def ungroup_menu_action(self, button):
         self.deselect_all()
@@ -618,6 +616,11 @@ class MainWindow(QMainWindow):
         self.scene_is_point = True
         deactivate_buttons(self.buttons_to_deactivate)
 
+        # create a new file points.txt
+        if not os.path.isfile(self.points_file_path):
+            with open(self.points_file_path, "w") as _:
+                pass
+
     def jolly(self): # self.scene_data = [[LinkedList, container, bool]]
         for data in self.scene_data:
             list = data[0]
@@ -738,6 +741,7 @@ class MainWindow(QMainWindow):
         if project_path:
             self.project_path = project_path
             self.scene_file_path = os.path.join(self.project_path, "scenes.txt")
+            self.points_file_path = os.path.join(self.project_path, "points.txt")
             self.base_name = obtain_base_name(self)
 
             video_path = os.path.join(obtain_output_dir(self), self.base_name)
@@ -793,6 +797,13 @@ class MainWindow(QMainWindow):
 
                     self.create_macroscene(macro_scene, button_text, None)
 
+            if os.path.isfile(self.points_file_path):
+                self.initiate_set_points()
+                with open(self.points_file_path, "r") as points_file:
+                    for line in points_file:
+                        player, index = line.split()
+                        self.scene_data[int(index)][3] = int(player)
+
             self.save_project()
 
             self.play_and_pause_button.setEnabled(False)
@@ -808,6 +819,12 @@ class MainWindow(QMainWindow):
                         scene_file.write(f"{start} {end} ")
                         current_node = current_node.next
                     scene_file.write("\n")
+            if os.path.isfile(self.points_file_path):
+                with open (self.points_file_path, "w") as points_file:
+                    for data in self.scene_data:
+                        if data[3] is not None:
+                            index = self.scene_data.index(data)
+                            points_file.write(f"{data[3]} {index}\n")
             self.modified = False
 
 if __name__ == "__main__":
