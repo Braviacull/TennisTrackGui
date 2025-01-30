@@ -7,9 +7,12 @@ import vlc
 
 from PySide6.QtWidgets import (
     QMainWindow, QWidget, QVBoxLayout, QPushButton, QScrollArea, QHBoxLayout, 
-    QSlider, QFileDialog, QLabel, QApplication, QSplitter, QInputDialog, QCheckBox, QMessageBox
+    QSlider, QFileDialog, QLabel, QApplication, QSplitter, QInputDialog, QCheckBox, QMessageBox, 
+    QMenu
 )
+from PySide6.QtGui import QAction
 from PySide6.QtCore import Qt, QThread, QTimer
+from functools import partial
 
 from costants import *
 from video_operations import *
@@ -18,7 +21,7 @@ from play import *
 from linked_list import LinkedList
 from utils import (
     get_selected_scenes_data, remove_container_from_layout, activate_buttons, deactivate_buttons,
-    clear_layout, get_macro_scene_correct_name
+    clear_layout, get_macro_scene_correct_name, get_data_from_button
 )
 
 class ProcessingThread(QThread):
@@ -358,6 +361,8 @@ class MainWindow(QMainWindow):
         # Create a button with the name of the macroscene and connect its clicked signal
         button = QPushButton(name)
         button.clicked.connect(self.play_macro_scene)
+        button.setContextMenuPolicy(Qt.CustomContextMenu)
+        button.customContextMenuRequested.connect(self.show_context_menu)
         container_layout.addWidget(button)
         
         # Create a checkbox and connect its stateChanged signal
@@ -383,6 +388,30 @@ class MainWindow(QMainWindow):
         else:
             self.scene_data.insert(position, data)
         self.modified = True
+
+    def show_context_menu(self, position):
+        menu = QMenu()
+
+        # Get the button that triggered the context menu
+        button = self.sender()
+        
+        ungroup = QAction("ungroup", self)
+        
+        # Collega l'azione alla funzione con il pulsante come argomento
+        ungroup.triggered.connect(partial(self.ungroup_menu_action, button))
+        
+        menu.addAction(ungroup)
+        
+        # Show the context menu at the position of the button
+        menu.exec(button.mapToGlobal(position))
+
+    # Definisci la funzione che verrà chiamata dall'azione
+    def ungroup_menu_action(self, button):
+        self.deselect_all()
+        data = get_data_from_button(self, button)
+        check_box = data[1].findChild(QCheckBox)
+        check_box.setChecked(True)
+        self.ungroup()
 
     def group (self):
         selected_scenes_data = get_selected_scenes_data(self)

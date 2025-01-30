@@ -2,6 +2,7 @@ from scenedetect.video_manager import VideoManager
 from scenedetect.scene_manager import SceneManager
 from scenedetect.stats_manager import StatsManager
 from scenedetect.detectors import ContentDetector
+from PySide6.QtWidgets import QPushButton
 
 def scene_detect(path_video):
     """
@@ -58,4 +59,10 @@ def get_macro_scene_correct_name (head):
         head = head.next
 
     return resulting_name[3:]
+
+def get_data_from_button(self, button):
+    for data in self.scene_data:
+        if data[1].findChild(QPushButton) == button:
+            return data
+
 
