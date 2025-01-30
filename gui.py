@@ -369,13 +369,19 @@ class MainWindow(QMainWindow):
         data.append(container)
         
         # Insert the container into the scroll_layout at the specified position
-        self.scroll_layout.insertWidget(position, container)
+        if (position is None):
+            self.scroll_layout.addWidget(container)
+        else:
+            self.scroll_layout.insertWidget(position, container)
         
         # Add a boolean value to indicate whether the scene is selected
         data.append(False)
         
         # Insert the macroscene data into the scene_data list at the specified position
-        self.scene_data.insert(position, data)
+        if (position is None):
+            self.scene_data.append(data)
+        else:
+            self.scene_data.insert(position, data)
         self.modified = True
 
     def group (self):
@@ -699,23 +705,10 @@ class MainWindow(QMainWindow):
                         scene = [start, end]
                         macro_scene.append_to_list(scene)
 
-                    container = QWidget()
-                    container_layout = QHBoxLayout(container)
-
                     # Crea il testo del pulsante con i trattini tra le coppie di numeri
                     button_text = ' | '.join(f"{scenes[j]}-{scenes[j+1]}" for j in range(0, len(scenes), 2))
-                    button = QPushButton(button_text.strip())
-                    button.clicked.connect(self.play_macro_scene)
-                    container_layout.addWidget(button)
 
-                    checkbox = QCheckBox()
-                    container_layout.addWidget(checkbox)
-                    checkbox.stateChanged.connect(self.check_scene)
-
-                    self.scroll_layout.addWidget(container)
-
-                    data = [macro_scene, container, False] # [LinkedList, container, checked]
-                    self.scene_data.append(data)
+                    self.create_macroscene(macro_scene, button_text, None)
 
             self.save_project()
 
