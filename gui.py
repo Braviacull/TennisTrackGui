@@ -385,6 +385,7 @@ class MainWindow(QMainWindow):
             return
         
         resulting_name = ""
+        position = self.scene_data.index(selected_scenes_data[0])
         
         new_macroscene = LinkedList()
         for data in selected_scenes_data:
@@ -398,10 +399,13 @@ class MainWindow(QMainWindow):
         # remove the initial two spaces
         resulting_name = resulting_name[3:]
 
-        self.create_macroscene(new_macroscene, resulting_name, 0)
+        self.create_macroscene(new_macroscene, resulting_name, position)
 
     def ungroup (self):
         selected_scenes_data = get_selected_scenes_data(self)
+        if len(selected_scenes_data) < 1:
+            print ("Select at least one scene")
+            return
         for data in selected_scenes_data:
             position = self.scene_data.index(data)
             head = data[0].head # Node
