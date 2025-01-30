@@ -117,7 +117,7 @@ class MainWindow(QMainWindow):
         # BUTTONS
         # Create a list of buttons to activate
         self.buttons_to_activate = []
-        self.buttons = []
+        self.buttons_to_deactivate = [] # disactivate when scenes are points
         # Create a horizontal layout for the buttons
         self.buttons_layout = QHBoxLayout()
         # New project button
@@ -164,42 +164,48 @@ class MainWindow(QMainWindow):
         self.buttons_layout.addWidget(self.delete_selected_button)
         self.buttons_to_activate.append(self.delete_selected_button)
         self.delete_selected_button.setEnabled(False)
+        self.buttons_to_deactivate.append(self.delete_selected_button)
         # Create macroscene button
         self.create_macroscene_button = QPushButton("Create Macroscene")
         self.create_macroscene_button.clicked.connect(self.obtain_scene_list)
         self.buttons_layout.addWidget(self.create_macroscene_button)
         self.buttons_to_activate.append(self.create_macroscene_button)
         self.create_macroscene_button.setEnabled(False)
+        self.buttons_to_deactivate.append(self.create_macroscene_button)
         # Merge button
         self.merge_button = QPushButton("Merge")
         self.merge_button.clicked.connect(self.merge)
         self.buttons_layout.addWidget(self.merge_button)
         self.buttons_to_activate.append(self.merge_button)
         self.merge_button.setEnabled(False)
+        self.buttons_to_deactivate.append(self.merge_button)
         # Group button
         self.group_button = QPushButton("Group")
         self.group_button.clicked.connect(self.group)
         self.buttons_layout.addWidget(self.group_button)
         self.buttons_to_activate.append(self.group_button)
         self.group_button.setEnabled(False)
-        # Ungroup button
-        self.ungroup_button = QPushButton("Ungroup")
-        self.ungroup_button.clicked.connect(self.ungroup)
-        self.buttons_layout.addWidget(self.ungroup_button)
-        self.buttons_to_activate.append(self.ungroup_button)
-        self.ungroup_button.setEnabled(False)
+        self.buttons_to_deactivate.append(self.group_button)
         # Split button
         self.split_button = QPushButton("Split")
         self.split_button.clicked.connect(self.split)
         self.buttons_layout.addWidget(self.split_button)
         self.buttons_to_activate.append(self.split_button)
         self.split_button.setEnabled(False)
+        self.buttons_to_deactivate.append(self.split_button)
         # Generate video button
         self.generate_video_button = QPushButton("Generate Video")
         self.generate_video_button.clicked.connect(self.generate_video)
         self.buttons_layout.addWidget(self.generate_video_button)
         self.buttons_to_activate.append(self.generate_video_button)
         self.generate_video_button.setEnabled(False)
+        # Set Points button
+        self.set_points_button = QPushButton("Set Points")
+        self.set_points_button.clicked.connect(self.initiate_set_points)
+        self.buttons_layout.addWidget(self.set_points_button)
+        self.buttons_to_activate.append(self.set_points_button)
+        self.set_points_button.setEnabled(False)
+        self.buttons_to_deactivate.append(self.set_points_button)
         # Jolly button
         self.jolly_button = QPushButton("Jolly")
         self.jolly_button.clicked.connect(self.jolly)
@@ -232,6 +238,9 @@ class MainWindow(QMainWindow):
         # Set a timer to check the video time
         self.timer = QTimer(self)
         self.timer.timeout.connect(self.check_time)
+
+        # Indicates if every scene is a point or if the scenes needs to be modified by the user 
+        self.scene_is_point = False # If True, the scenes cannot be modified anymore (no merge, split, etc.)
 
         # Gestione Threads
         self.processing_threads = []
@@ -390,6 +399,9 @@ class MainWindow(QMainWindow):
         self.modified = True
 
     def show_context_menu(self, position):
+        if self.scene_is_point:
+            return
+        
         menu = QMenu()
 
         # Get the button that triggered the context menu
@@ -405,7 +417,6 @@ class MainWindow(QMainWindow):
         # Show the context menu at the position of the button
         menu.exec(button.mapToGlobal(position))
 
-    # Definisci la funzione che verrà chiamata dall'azione
     def ungroup_menu_action(self, button):
         self.deselect_all()
         data = get_data_from_button(self, button)
@@ -567,6 +578,10 @@ class MainWindow(QMainWindow):
         # Write the frames to the new video using the write function
         write(imgs_res, self.frame_rate, output_video_path)
         print(f"Video saved to {output_video_path}")
+
+    def initiate_set_points(self):
+        self.scene_is_point = True
+        deactivate_buttons(self.buttons_to_deactivate)
 
     def jolly(self): # self.scene_data = [[LinkedList, container, bool]]
         for data in self.scene_data:
