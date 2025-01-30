@@ -222,7 +222,7 @@ class MainWindow(QMainWindow):
         self.base_name = None  # path del video pre-processato
 
         # Scene data MAIN DATA STRUCTURE
-        self.scene_data = [] # [[LinkedList, container_widget, checked]]
+        self.scene_data = [] # [[LinkedList, container_widget, checked, winner]]
         self.modified = False
 
         # Gestione Threads e wait
@@ -232,15 +232,18 @@ class MainWindow(QMainWindow):
         # video data
         self.frame_rate = None
         self.num_frames = None
-        self.current_data = None # [LinkedList, container_widget, checked]
+        self.current_data = None # [LinkedList, container_widget, checked, winner]
         self.current_node = None
         self.end_time = None
+
         # Set a timer to check the video time
         self.timer = QTimer(self)
         self.timer.timeout.connect(self.check_time)
 
         # Indicates if every scene is a point or if the scenes needs to be modified by the user 
         self.scene_is_point = False # If True, the scenes cannot be modified anymore (no merge, split, etc.)
+        self.player1 = "Sinner"
+        self.player2 = "Fritz"
 
         # Gestione Threads
         self.processing_threads = []
@@ -260,6 +263,26 @@ class MainWindow(QMainWindow):
             return True
         else:
             return False
+        
+    def ask_for_player(self):
+        msg_box = QMessageBox(self)
+        msg_box.setWindowTitle("Player Selection")
+        msg_box.setText("Who won the point?")
+        
+        player1_button = msg_box.addButton(self.player1, QMessageBox.ActionRole)
+        player2_button = msg_box.addButton(self.player2, QMessageBox.ActionRole)
+        msg_box.addButton(QMessageBox.Cancel)
+        
+        msg_box.exec()
+        
+        if msg_box.clickedButton() == player1_button:
+            print(self.player1 + " won the point")
+            return 1
+        elif msg_box.clickedButton() == player2_button:
+            print(self.player2 + " won the point")
+            return 2
+        else:
+            return None
 
     def closeEvent(self, event):
         if self.ask_for_save():
@@ -358,7 +381,7 @@ class MainWindow(QMainWindow):
 
     def create_macroscene(self, scene_list, name, position):
         # Create a list to hold the macroscene data
-        data = []
+        data = [] # [LinkedList, container_widget, checked, winner]
         
         # Add the scene list to the data list
         data.append(scene_list)
@@ -390,6 +413,10 @@ class MainWindow(QMainWindow):
         
         # Add a boolean value to indicate whether the scene is selected
         data.append(False)
+
+        # Add the winner of the point
+        winner = None
+        data.append(winner)
         
         # Insert the macroscene data into the scene_data list at the specified position
         if (position is None):
@@ -399,23 +426,31 @@ class MainWindow(QMainWindow):
         self.modified = True
 
     def show_context_menu(self, position):
-        if self.scene_is_point:
-            return
-        
         menu = QMenu()
-
-        # Get the button that triggered the context menu
         button = self.sender()
         
-        ungroup = QAction("ungroup", self)
-        
-        # Collega l'azione alla funzione con il pulsante come argomento
-        ungroup.triggered.connect(partial(self.ungroup_menu_action, button))
-        
-        menu.addAction(ungroup)
+        if self.scene_is_point == False:
+            ungroup = QAction("ungroup", self)
+            ungroup.triggered.connect(partial(self.ungroup_menu_action, button))
+            menu.addAction(ungroup)
+
+        elif self.scene_is_point == True:
+            set_point = QAction("set point", self)
+            set_point.triggered.connect(partial(self.set_point_menu_action, button))
+            menu.addAction(set_point)
         
         # Show the context menu at the position of the button
         menu.exec(button.mapToGlobal(position))
+
+    def set_point_menu_action(self, button):
+        data = get_data_from_button(self, button)
+        winner = data[3]
+        if winner is None:
+            winner = self.ask_for_player()
+            if winner is None:
+                return
+        
+        data[3] = winner
 
     def ungroup_menu_action(self, button):
         self.deselect_all()
@@ -591,6 +626,10 @@ class MainWindow(QMainWindow):
             print (button.text())
             list.print_list()
             print (data[2])
+            if (data[3] is not None):
+                print (data[3])
+            else:
+                print ("None")
             print ("---")
         print ("\n")
 
