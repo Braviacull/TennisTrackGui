@@ -64,5 +64,33 @@ def get_data_from_button(self, button):
     for data in self.scene_data:
         if data[1].findChild(QPushButton) == button:
             return data
+        
+def update_game (self, who_scored):
+    if who_scored == 1:
+        self.game[0] = update_score(self.game[0])
+    elif who_scored == 2:
+        self.game[1] = update_score(self.game[1])
+    winner = check_game(self.game)
 
+def update_score (score):
+    if score < 30:
+        score += 15
+    elif score == 30:
+        score += 10
+    elif score == 40:
+        score += 1
+    return score
 
+def check_game (game):
+    winner = None
+    if game[0] == 41 and game[1] < 40:
+        winner = 1
+    elif game[1] == 41 and game[0] < 40:
+        winner = 2
+    elif game[0] >= 40 and game[1] >= 40:
+        if game[0] == game[1] + 2:
+            winner = 1
+        elif game[1] == game[0] + 2:
+            winner = 2
+
+    return winner

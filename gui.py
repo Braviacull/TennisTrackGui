@@ -19,10 +19,7 @@ from video_operations import *
 from obtain_directory import *
 from play import *
 from linked_list import LinkedList
-from utils import (
-    get_selected_scenes_data, remove_container_from_layout, activate_buttons, deactivate_buttons,
-    clear_layout, get_macro_scene_correct_name, get_data_from_button
-)
+from utils import *
 
 class ProcessingThread(QThread):
     def __init__(self, input_path, output_path, application):
@@ -206,6 +203,11 @@ class MainWindow(QMainWindow):
         self.buttons_to_activate.append(self.set_points_button)
         self.set_points_button.setEnabled(False)
         self.buttons_to_deactivate.append(self.set_points_button)
+        # Start Game button
+        self.game_starts_button = QPushButton("Start Game")
+        self.game_starts_button.clicked.connect(self.start_game)
+        self.buttons_layout.addWidget(self.game_starts_button)
+        self.game_starts_button.setEnabled(False)
         # Jolly button
         self.jolly_button = QPushButton("Jolly")
         self.jolly_button.clicked.connect(self.jolly)
@@ -245,6 +247,9 @@ class MainWindow(QMainWindow):
         self.scene_is_point = False # If True, the scenes cannot be modified anymore (no merge, split, etc.)
         self.player1 = "Sinner"
         self.player2 = "Fritz"
+        self.game = [0,0] # the game score
+        self.sets = [0,0] # the sets score
+        self.winner = None # the winner of the match
 
         # Gestione Threads
         self.processing_threads = []
@@ -272,6 +277,7 @@ class MainWindow(QMainWindow):
         
         player1_button = msg_box.addButton(self.player1, QMessageBox.ActionRole)
         player2_button = msg_box.addButton(self.player2, QMessageBox.ActionRole)
+        play_point_button = msg_box.addButton("Play point", QMessageBox.ActionRole)
         msg_box.addButton(QMessageBox.Cancel)
         
         msg_box.exec()
@@ -280,6 +286,9 @@ class MainWindow(QMainWindow):
             return 1
         elif msg_box.clickedButton() == player2_button:
             return 2
+        elif msg_box.clickedButton() == play_point_button:
+            self.select_and_play()
+            return None
         else:
             return None
 
@@ -615,11 +624,40 @@ class MainWindow(QMainWindow):
     def initiate_set_points(self):
         self.scene_is_point = True
         deactivate_buttons(self.buttons_to_deactivate)
+        self.game_starts_button.setEnabled(True)
 
         # create a new file points.txt
         if not os.path.isfile(self.points_file_path):
             with open(self.points_file_path, "w") as _:
                 pass
+        if not os.path.isfile(self.scores_file_path):
+            with open(self.scores_file_path, "w") as scores_file:
+                scores_file.write("0 0\n0 0\n")
+
+    def start_game(self):
+        current_point = None
+        for point in self.scene_data:
+            if point[3] is None:
+                current_point = point
+                break
+
+        if current_point is None:
+            print ("All points have been played")
+            print (self.game)
+            return
+        
+        # select only the current point
+        self.deselect_all()
+        check_box = current_point[1].findChild(QCheckBox)
+        check_box.setChecked(True)
+
+        # point play
+        who_scored = self.ask_for_player()
+        if who_scored is not None:
+            current_point[3] = who_scored
+            update_game(self, who_scored)
+            self.modified = True
+            print (self.game)
 
     def jolly(self): # self.scene_data = [[LinkedList, container, bool]]
         for data in self.scene_data:
@@ -742,6 +780,7 @@ class MainWindow(QMainWindow):
             self.project_path = project_path
             self.scene_file_path = os.path.join(self.project_path, "scenes.txt")
             self.points_file_path = os.path.join(self.project_path, "points.txt")
+            self.scores_file_path = os.path.join(self.project_path, "scores.txt")
             self.base_name = obtain_base_name(self)
 
             video_path = os.path.join(obtain_output_dir(self), self.base_name)
@@ -804,6 +843,13 @@ class MainWindow(QMainWindow):
                         player, index = line.split()
                         self.scene_data[int(index)][3] = int(player)
 
+            if os.path.isfile(self.scores_file_path):
+                with open(self.scores_file_path, "r") as scores_file:
+                    game_score = scores_file.readline().split()
+                    self.game = [int(game_score[0]), int(game_score[1])]
+                    sets_score = scores_file.readline().split()
+                    self.sets = [int(sets_score[0]), int(sets_score[1])]
+
             self.save_project()
 
             self.play_and_pause_button.setEnabled(False)
@@ -825,6 +871,9 @@ class MainWindow(QMainWindow):
                         if data[3] is not None:
                             index = self.scene_data.index(data)
                             points_file.write(f"{data[3]} {index}\n")
+            if os.path.isfile(self.scores_file_path):
+                with open (self.scores_file_path, "w") as scores_file:
+                    scores_file.write(f"{self.game[0]} {self.game[1]}\n{self.sets[0]} {self.sets[1]}\n")
             self.modified = False
 
 if __name__ == "__main__":
