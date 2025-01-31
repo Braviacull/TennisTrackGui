@@ -20,6 +20,7 @@ from obtain_directory import *
 from play import *
 from linked_list import LinkedList
 from utils import *
+from tennis_point_system import *
 
 class ProcessingThread(QThread):
     def __init__(self, input_path, output_path, application):
@@ -203,11 +204,11 @@ class MainWindow(QMainWindow):
         self.buttons_to_activate.append(self.set_points_button)
         self.set_points_button.setEnabled(False)
         self.buttons_to_deactivate.append(self.set_points_button)
-        # Start Game button
-        self.game_starts_button = QPushButton("Start Game")
-        self.game_starts_button.clicked.connect(self.start_game)
-        self.buttons_layout.addWidget(self.game_starts_button)
-        self.game_starts_button.setEnabled(False)
+        # Who scored button
+        self.who_scored_button = QPushButton("Who Scored")
+        self.who_scored_button.clicked.connect(self.who_scored)
+        self.buttons_layout.addWidget(self.who_scored_button)
+        self.who_scored_button.setEnabled(False)
         # Jolly button
         self.jolly_button = QPushButton("Jolly")
         self.jolly_button.clicked.connect(self.jolly)
@@ -247,8 +248,11 @@ class MainWindow(QMainWindow):
         self.scene_is_point = False # If True, the scenes cannot be modified anymore (no merge, split, etc.)
         self.player1 = "Sinner"
         self.player2 = "Fritz"
-        self.game = [0,0] # the game score
+        self.score = [0,0] # the game score
+        self.games = [0,0] # the games score
         self.sets = [0,0] # the sets score
+        self.max_sets = 2 # the maximum number of sets
+        self.tiebreak = False # if True, the current set is a tiebreak
         self.winner = None # the winner of the match
 
         # Gestione Threads
@@ -624,7 +628,7 @@ class MainWindow(QMainWindow):
     def initiate_set_points(self):
         self.scene_is_point = True
         deactivate_buttons(self.buttons_to_deactivate)
-        self.game_starts_button.setEnabled(True)
+        self.who_scored_button.setEnabled(True)
 
         # create a new file points.txt
         if not os.path.isfile(self.points_file_path):
@@ -632,32 +636,39 @@ class MainWindow(QMainWindow):
                 pass
         if not os.path.isfile(self.scores_file_path):
             with open(self.scores_file_path, "w") as scores_file:
-                scores_file.write("0 0\n0 0\n")
+                scores_file.write("0 0\n0 0\n0 0 "+str(self.max_sets)+"\n")
 
-    def start_game(self):
-        current_point = None
-        for point in self.scene_data:
-            if point[3] is None:
-                current_point = point
-                break
+    def who_scored(self):
+        # current_point = None
+        # for point in self.scene_data:
+        #     if point[3] is None:
+        #         current_point = point
+        #         break
 
-        if current_point is None:
-            print ("All points have been played")
-            print (self.game)
-            return
+        # if current_point is None:
+        #     print ("All points have been played")
+        #     print (self.score)
+        #     print (self.games)
+        #     print (self.sets)
+        #     return
         
-        # select only the current point
-        self.deselect_all()
-        check_box = current_point[1].findChild(QCheckBox)
-        check_box.setChecked(True)
+        # # select only the current point
+        # self.deselect_all()
+        # check_box = current_point[1].findChild(QCheckBox)
+        # check_box.setChecked(True)
 
         # point play
         who_scored = self.ask_for_player()
         if who_scored is not None:
-            current_point[3] = who_scored
-            update_game(self, who_scored)
-            self.modified = True
-            print (self.game)
+            # current_point[3] = who_scored
+            if self.tiebreak == False:
+                assign_point(self, who_scored)
+            elif self.tiebreak == True:
+                assign_point_tiebreak(self, who_scored)
+            # self.modified = True
+            print (self.score)
+            print (self.games)
+            print (self.sets)
 
     def jolly(self): # self.scene_data = [[LinkedList, container, bool]]
         for data in self.scene_data:
@@ -845,10 +856,13 @@ class MainWindow(QMainWindow):
 
             if os.path.isfile(self.scores_file_path):
                 with open(self.scores_file_path, "r") as scores_file:
-                    game_score = scores_file.readline().split()
-                    self.game = [int(game_score[0]), int(game_score[1])]
-                    sets_score = scores_file.readline().split()
-                    self.sets = [int(sets_score[0]), int(sets_score[1])]
+                    score = scores_file.readline().split()
+                    self.score = [int(score[0]), int(score[1])]
+                    games = scores_file.readline().split()
+                    self.games = [int(games[0]), int(games[1])]
+                    sets = scores_file.readline().split()
+                    self.sets = [int(sets[0]), int(sets[1])]
+                    self.max_sets = int(sets[2])
 
             self.save_project()
 
@@ -873,7 +887,7 @@ class MainWindow(QMainWindow):
                             points_file.write(f"{data[3]} {index}\n")
             if os.path.isfile(self.scores_file_path):
                 with open (self.scores_file_path, "w") as scores_file:
-                    scores_file.write(f"{self.game[0]} {self.game[1]}\n{self.sets[0]} {self.sets[1]}\n")
+                    scores_file.write(f"{self.score[0]} {self.score[1]}\n{self.games[0]} {self.games[1]}\n {self.sets[0]} {self.sets[1]} {self.max_sets}\n")
             self.modified = False
 
 if __name__ == "__main__":
