@@ -651,7 +651,10 @@ class MainWindow(QMainWindow):
         # point play
         who_scored = self.ask_for_player()
         if who_scored is not None:
-            # current_point[3] = who_scored
+            current_point.point_winner = who_scored
+            current_point.game = get_current_game(self)
+            current_point.set = get_current_set(self)
+
             if self.tiebreak == False:
                 assign_point(self, who_scored)
             elif self.tiebreak == True:
@@ -673,11 +676,11 @@ class MainWindow(QMainWindow):
             list.print_list()
             print (data.checked)
             if (data.point_winner is not None):
-                print (data.point_winner)
+                print ("point wininer is " + str(data.point_winner))
             if (data.game is not None):
-                print (data.game)
+                print ("Game: " + str(data.game))
             if (data.set is not None):
-                print (data.set)
+                print ("Set: " + str(data.set))
             if (data.tiebreak == True):
                 print ("Tiebreak")
             print ("---")
@@ -847,8 +850,11 @@ class MainWindow(QMainWindow):
                 self.initiate_set_points()
                 with open(self.points_file_path, "r") as points_file:
                     for line in points_file:
-                        player, index = line.split()
+                        player, game, set, tiebreak, index = line.split()
                         self.scene_data[int(index)].point_winner = int(player)
+                        self.scene_data[int(index)].game = int(game)
+                        self.scene_data[int(index)].set = int(set)
+                        self.scene_data[int(index)].tiebreak = bool(tiebreak)
 
             if os.path.isfile(self.scores_file_path):
                 with open(self.scores_file_path, "r") as scores_file:
@@ -883,7 +889,7 @@ class MainWindow(QMainWindow):
                     for data in self.scene_data:
                         if data.point_winner is not None:
                             index = self.scene_data.index(data)
-                            points_file.write(f"{data.point_winner} {index}\n")
+                            points_file.write(f"{data.point_winner} {data.game} {data.set} {data.tiebreak} {index}\n")
             if os.path.isfile(self.scores_file_path):
                 with open (self.scores_file_path, "w") as scores_file:
                     scores_file.write(f"{self.score[0]} {self.score[1]}\n{self.games[0]} {self.games[1]}\n{self.sets[0]} {self.sets[1]} {self.max_sets}\n")
