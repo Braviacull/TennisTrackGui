@@ -21,6 +21,8 @@ from play import *
 from linked_list import LinkedList
 from utils import *
 from tennis_point_system import *
+from scene_data_class import SceneData
+from typing import List
 
 class ProcessingThread(QThread):
     def __init__(self, input_path, output_path, application):
@@ -226,7 +228,7 @@ class MainWindow(QMainWindow):
         self.base_name = None  # path del video pre-processato
 
         # Scene data MAIN DATA STRUCTURE
-        self.scene_data = [] # [[LinkedList, container_widget, checked, winner]]
+        self.scene_data: List[SceneData] = []
         self.modified = False
 
         # Gestione Threads e wait
@@ -331,16 +333,16 @@ class MainWindow(QMainWindow):
     def check_scene(self, state):
         container = self.sender().parentWidget()
         for data in self.scene_data:
-            if data[1] == container:
-                data[2] = not data[2]
+            if data.container_widget == container:
+                data.checked = not data.checked
                 break
 
     def play_macro_scene(self):
         container = self.sender().parentWidget()
         for data in self.scene_data:
-            if data[1] == container: # uses container to recognize the scene
+            if data.container_widget == container: # uses container to recognize the scene
                 self.current_data = data
-                self.current_node = data[0].head
+                self.current_node = data.linked_list.head
 
         if self.current_node is None:
             print ("Error: macroscene is None")
@@ -361,7 +363,7 @@ class MainWindow(QMainWindow):
             self.video_slider.setValue(end)
             play_next_scene(self)
 
-    def obtain_scene_list_and_create_macroscene(self):  # self.scene_data = [[LinkedList, container, bool]]
+    def obtain_scene_list_and_create_macroscene(self):
         data = []
         scene_list = LinkedList()
         # asks the user to enter the name of the macroscene
@@ -393,10 +395,8 @@ class MainWindow(QMainWindow):
 
     def create_macroscene(self, scene_list, name, position):
         # Create a list to hold the macroscene data
-        data = [] # [LinkedList, container_widget, checked, winner]
-        
-        # Add the scene list to the data list
-        data.append(scene_list)
+        # [LinkedList, container_widget, checked, winner]
+        data = SceneData(scene_list, None, False, None, None, None, False)
         
         # Create a container widget for the button and checkbox
         container = QWidget()
@@ -415,20 +415,13 @@ class MainWindow(QMainWindow):
         container_layout.addWidget(checkbox)
         
         # Add the container to the data list
-        data.append(container)
+        data.container_widget = container
         
         # Insert the container into the scroll_layout at the specified position
         if (position is None):
             self.scroll_layout.addWidget(container)
         else:
             self.scroll_layout.insertWidget(position, container)
-        
-        # Add a boolean value to indicate whether the scene is selected
-        data.append(False)
-
-        # Add the winner of the point
-        winner = None
-        data.append(winner)
         
         # Insert the macroscene data into the scene_data list at the specified position
         if (position is None):
@@ -456,17 +449,17 @@ class MainWindow(QMainWindow):
 
     def set_point_menu_action(self, button):
         data = get_data_from_button(self, button)
-        winner = data[3]
+        winner = data.point_winner
         winner = self.ask_for_player()
         if winner is None:
             return
-        data[3] = winner
+        data.point_winner = winner
         self.modified = True
 
     def ungroup_menu_action(self, button):
         self.deselect_all()
         data = get_data_from_button(self, button)
-        check_box = data[1].findChild(QCheckBox)
+        check_box = data.container_widget.findChild(QCheckBox)
         check_box.setChecked(True)
         self.ungroup()
 
@@ -481,8 +474,8 @@ class MainWindow(QMainWindow):
         
         new_macroscene = LinkedList()
         for data in selected_scenes_data:
-            current_node = data[0].head
-            button = data[1].findChild(QPushButton)
+            current_node = data.linked_list.head
+            button = data.container_widget.findChild(QPushButton)
             resulting_name += (" | " + button.text())
             while current_node:
                 new_macroscene.append_to_list(current_node.data)
@@ -500,7 +493,7 @@ class MainWindow(QMainWindow):
             return
         for data in selected_scenes_data:
             position = self.scene_data.index(data)
-            head = data[0].head # Node
+            head = data.linked_list.head
             while head:
                 scene_list = LinkedList()
                 scene_list.append_to_list(head.data)
@@ -522,8 +515,8 @@ class MainWindow(QMainWindow):
         
         new_macroscene = LinkedList()
         for data in selected_scenes_data:
-            current_node = data[0].head
-            button = data[1].findChild(QPushButton)
+            current_node = data.linked_list.head
+            button = data.container_widget.findChild(QPushButton)
             resulting_name += (" | " + button.text())
             while current_node:
                 new_macroscene.append_to_list(current_node.data)
@@ -533,16 +526,16 @@ class MainWindow(QMainWindow):
         resulting_name = resulting_name[3:]
 
         resulting_scene_data = selected_scenes_data[0]
-        container = resulting_scene_data[1]
+        container = resulting_scene_data.container_widget
         button = container.findChild(QPushButton)
         button.setText(resulting_name)
 
         checkbox = container.findChild(QCheckBox)
         checkbox.setChecked(False)
-        resulting_scene_data[0] = new_macroscene
+        resulting_scene_data.linked_list = new_macroscene
 
         for data in selected_scenes_data[1:]: # work with a copy of the list for deleting elements
-            remove_container_from_layout(data[1], self.scroll_layout)
+            remove_container_from_layout(data.container_widget, self.scroll_layout)
             self.scene_data.remove(data)
             self.modified = True
 
@@ -550,23 +543,21 @@ class MainWindow(QMainWindow):
         if self.mediaplayer.is_playing(): # pause the video if necessary
             self.play_and_pause()
 
-        
-
         start_frame = self.current_node.data[0]
         current_frame = time_to_frame(self.mediaplayer.get_time(), self.frame_rate)
         end_frame = self.current_node.data[1]
 
         self.current_node.set_data([start_frame, current_frame])
         second_scene = [current_frame + 1, end_frame]
-        self.current_data[0].insert_after_node(self.current_node, second_scene)
+        self.current_data.linked_list.insert_after_node(self.current_node, second_scene)
 
-        button_text = get_macro_scene_correct_name(self.current_data[0].head)
+        button_text = get_macro_scene_correct_name(self.current_data.linked_list.head)
 
-        button = self.current_data[1].findChild(QPushButton)
+        button = self.current_data.container_widget.findChild(QPushButton)
         button.setText(button_text)
 
         self.deselect_all()
-        self.current_data[2] = True
+        self.current_data.checked = True
         self.ungroup()
         self.delete_selected()
 
@@ -597,7 +588,7 @@ class MainWindow(QMainWindow):
         selected_scenes_data = get_selected_scenes_data(self)
         frames = []
         for data in selected_scenes_data:
-            current_node = data[0].head
+            current_node = data.linked_list.head
             while current_node:
                 frames.extend(range(current_node.data[0], current_node.data[1] + 1))
                 current_node = current_node.next
@@ -639,23 +630,23 @@ class MainWindow(QMainWindow):
                 scores_file.write("0 0\n0 0\n0 0 "+str(self.max_sets)+"\n")
 
     def who_scored(self):
-        # current_point = None
-        # for point in self.scene_data:
-        #     if point[3] is None:
-        #         current_point = point
-        #         break
+        current_point = None
+        for point in self.scene_data:
+            if point.point_winner is None:
+                current_point = point
+                break
 
-        # if current_point is None:
-        #     print ("All points have been played")
-        #     print (self.score)
-        #     print (self.games)
-        #     print (self.sets)
-        #     return
+        if current_point is None:
+            print (self.score)
+            print (self.games)
+            print (self.sets)
+            print ("All points have been played \n")
+            return
         
-        # # select only the current point
-        # self.deselect_all()
-        # check_box = current_point[1].findChild(QCheckBox)
-        # check_box.setChecked(True)
+        # select only the current point
+        self.deselect_all()
+        check_box = current_point.container_widget.findChild(QCheckBox)
+        check_box.setChecked(True)
 
         # point play
         who_scored = self.ask_for_player()
@@ -664,33 +655,39 @@ class MainWindow(QMainWindow):
             if self.tiebreak == False:
                 assign_point(self, who_scored)
             elif self.tiebreak == True:
+                current_point.tiebreak = True
                 assign_point_tiebreak(self, who_scored)
             self.modified = True
+
             print (self.score)
             print (self.games)
             print (self.sets)
             print ("\n")
 
-    def jolly(self): # self.scene_data = [[LinkedList, container, bool]]
+    def jolly(self):
         for data in self.scene_data:
-            list = data[0]
-            container = data[1]
+            list = data.linked_list
+            container = data.container_widget
             button = container.findChild(QPushButton)
             print (button.text())
             list.print_list()
-            print (data[2])
-            if (data[3] is not None):
-                print (data[3])
-            else:
-                print ("None")
+            print (data.checked)
+            if (data.point_winner is not None):
+                print (data.point_winner)
+            if (data.game is not None):
+                print (data.game)
+            if (data.set is not None):
+                print (data.set)
+            if (data.tiebreak == True):
+                print ("Tiebreak")
             print ("---")
         print ("\n")
 
     def select_and_play(self):
         merged_scenes_macroscenes = LinkedList()
         for data in self.scene_data:
-            if data[2]:
-                current_node = data[0].head
+            if data.checked:
+                current_node = data.linked_list.head
                 while current_node:
                     merged_scenes_macroscenes.append_to_list(current_node.data)
                     current_node = current_node.next
@@ -701,25 +698,23 @@ class MainWindow(QMainWindow):
             print ("Select some checkboxes")
             return
         
-        # disattiva il bottone split
         play_scene(self)
-        # riattiva il bottone split
 
     def delete_selected(self):
         selected_scenes_data = get_selected_scenes_data(self)
         for data in selected_scenes_data:
-            remove_container_from_layout(data[1], self.scroll_layout)
+            remove_container_from_layout(data.container_widget, self.scroll_layout)
             self.scene_data.remove(data)
         self.modified = True
 
     def select_all(self):
         for data in self.scene_data:
-            checkbox = data[1].findChild(QCheckBox)
+            checkbox = data.container_widget.findChild(QCheckBox)
             checkbox.setChecked(True)
 
     def deselect_all(self):
         for data in self.scene_data:
-            checkbox = data[1].findChild(QCheckBox)
+            checkbox = data.container_widget.findChild(QCheckBox)
             checkbox.setChecked(False)
         
     def pre_processing(self):
@@ -853,7 +848,7 @@ class MainWindow(QMainWindow):
                 with open(self.points_file_path, "r") as points_file:
                     for line in points_file:
                         player, index = line.split()
-                        self.scene_data[int(index)][3] = int(player)
+                        self.scene_data[int(index)].point_winner = int(player)
 
             if os.path.isfile(self.scores_file_path):
                 with open(self.scores_file_path, "r") as scores_file:
@@ -877,7 +872,7 @@ class MainWindow(QMainWindow):
         if self.project_path:
             with open(self.scene_file_path, "w") as scene_file:
                 for data in self.scene_data:
-                    current_node = data[0].head
+                    current_node = data.linked_list.head
                     while current_node:
                         start, end = current_node.data
                         scene_file.write(f"{start} {end} ")
@@ -886,9 +881,9 @@ class MainWindow(QMainWindow):
             if os.path.isfile(self.points_file_path):
                 with open (self.points_file_path, "w") as points_file:
                     for data in self.scene_data:
-                        if data[3] is not None:
+                        if data.point_winner is not None:
                             index = self.scene_data.index(data)
-                            points_file.write(f"{data[3]} {index}\n")
+                            points_file.write(f"{data.point_winner} {index}\n")
             if os.path.isfile(self.scores_file_path):
                 with open (self.scores_file_path, "w") as scores_file:
                     scores_file.write(f"{self.score[0]} {self.score[1]}\n{self.games[0]} {self.games[1]}\n{self.sets[0]} {self.sets[1]} {self.max_sets}\n")
