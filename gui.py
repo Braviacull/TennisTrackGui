@@ -23,6 +23,7 @@ from utils import *
 from tennis_point_system import *
 from scene_data_class import SceneData
 from typing import List
+from filter_dialog_class import *
 
 class ProcessingThread(QThread):
     def __init__(self, input_path, output_path, application):
@@ -118,6 +119,7 @@ class MainWindow(QMainWindow):
         # Create a list of buttons to activate
         self.buttons_to_activate = []
         self.buttons_to_deactivate = [] # disactivate when scenes are points
+        self.buttons_to_activate_when_points = [] # activate when scenes are points
         # Create a horizontal layout for the buttons
         self.buttons_layout = QHBoxLayout()
         # New project button
@@ -210,7 +212,14 @@ class MainWindow(QMainWindow):
         self.who_scored_button = QPushButton("Who Scored")
         self.who_scored_button.clicked.connect(self.who_scored)
         self.buttons_layout.addWidget(self.who_scored_button)
+        self.buttons_to_activate_when_points.append(self.who_scored_button)
         self.who_scored_button.setEnabled(False)
+        # Filter button
+        self.filter_button = QPushButton("Filter")
+        self.filter_button.clicked.connect(self.filter)
+        self.buttons_layout.addWidget(self.filter_button)
+        self.buttons_to_activate.append(self.filter_button)
+        self.filter_button.setEnabled(False)
         # Jolly button
         self.jolly_button = QPushButton("Jolly")
         self.jolly_button.clicked.connect(self.jolly)
@@ -619,7 +628,7 @@ class MainWindow(QMainWindow):
     def initiate_set_points(self):
         self.scene_is_point = True
         deactivate_buttons(self.buttons_to_deactivate)
-        self.who_scored_button.setEnabled(True)
+        activate_buttons(self.buttons_to_activate_when_points)
 
         # create a new file points.txt
         if not os.path.isfile(self.points_file_path):
@@ -666,6 +675,17 @@ class MainWindow(QMainWindow):
             print (self.games)
             print (self.sets)
             print ("\n")
+
+    def filter(self):
+        dialog = FilterDialog(self)
+        if dialog.exec():
+            filters = dialog.get_filters()
+            print(filters)  # Replace with actual filtering logic
+            self.deselect_all()
+            for data in self.scene_data:
+                if data.point_winner == filters.player or filters.player == 0:
+                    check_box = data.container_widget.findChild(QCheckBox)
+                    check_box.setChecked(True)
 
     def jolly(self):
         for data in self.scene_data:
