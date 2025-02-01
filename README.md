@@ -5,6 +5,9 @@
 # Instructions to create and set up an environment to use the program on Windows:
 
 <!-- 
+IMPORTANT: If you have trouble installing catboost, you probably need to install Rust first.
+Alternatively, you can install an older version of Python (3.12.7 should be fine).
+
 IMPORTANT: if at any point something doesn't work, restarting the system can be a solution.
 
 IMPORTANT: always use pip to install packages.
@@ -28,6 +31,9 @@ IMPORTANT: use cmd, do not use PowerShell (I couldn't get conda to work on Power
 # Istruzioni per creare e settare un ambiente in cui poter usare il programma su Windows:
 
 <!-- 
+IMPORTANTE: Se hai problemi ad installare catboost, probabilmente hai bisogno di installare rust prima.
+In alternativa, puoi installare una vecchia versione di python (3.12.7 dovrebbe andare bene)
+
 IMPORTANTE: se ad un certo punto, qualcosa non dovesse funzionare, riavviare il sistema può essere una soluzione.
 
 IMPORTANTE: usa sempre pip per installare i pacchetti.

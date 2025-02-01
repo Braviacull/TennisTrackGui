@@ -5,7 +5,7 @@ def update_score (score):
         score += 15
     elif score == 30:
         score += 10
-    elif score == 40:
+    elif score >= 40:
         score += 1
     return score
 
@@ -81,9 +81,9 @@ def assign_point_tiebreak (self, who_scored):
 def check_tiebreak_winner (self):
     tiebreak_winner = None
 
-    if self.games[0] >= 7 and self.games[0] == self.games[1] + 2:
+    if self.score[0] >= 7 and self.score[0] == self.score[1] + 2:
         tiebreak_winner = 1
-    elif self.games[1] >= 7 and self.games[1] == self.games[0] + 2:
+    elif self.score[1] >= 7 and self.score[1] == self.score[0] + 2:
         tiebreak_winner = 2
 
     return tiebreak_winner
@@ -97,7 +97,6 @@ def update_sets (self, set_winner):
     match_winner = check_match_winner(self)
 
     if match_winner is not None:
-        self.sets = [0, 0]
         declare_match_winner(self, match_winner)
 
 def check_match_winner(self):

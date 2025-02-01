@@ -665,10 +665,11 @@ class MainWindow(QMainWindow):
                 assign_point(self, who_scored)
             elif self.tiebreak == True:
                 assign_point_tiebreak(self, who_scored)
-            # self.modified = True
+            self.modified = True
             print (self.score)
             print (self.games)
             print (self.sets)
+            print ("\n")
 
     def jolly(self): # self.scene_data = [[LinkedList, container, bool]]
         for data in self.scene_data:
@@ -864,6 +865,9 @@ class MainWindow(QMainWindow):
                     self.sets = [int(sets[0]), int(sets[1])]
                     self.max_sets = int(sets[2])
 
+            if self.games[0] == 6 and self.games[1] == 6:
+                self.tiebreak = True
+
             self.save_project()
 
             self.play_and_pause_button.setEnabled(False)
@@ -887,7 +891,7 @@ class MainWindow(QMainWindow):
                             points_file.write(f"{data[3]} {index}\n")
             if os.path.isfile(self.scores_file_path):
                 with open (self.scores_file_path, "w") as scores_file:
-                    scores_file.write(f"{self.score[0]} {self.score[1]}\n{self.games[0]} {self.games[1]}\n {self.sets[0]} {self.sets[1]} {self.max_sets}\n")
+                    scores_file.write(f"{self.score[0]} {self.score[1]}\n{self.games[0]} {self.games[1]}\n{self.sets[0]} {self.sets[1]} {self.max_sets}\n")
             self.modified = False
 
 if __name__ == "__main__":
