@@ -8,7 +8,7 @@ import vlc
 from PySide6.QtWidgets import (
     QMainWindow, QWidget, QVBoxLayout, QPushButton, QScrollArea, QHBoxLayout, 
     QSlider, QFileDialog, QLabel, QApplication, QSplitter, QInputDialog, QCheckBox, QMessageBox, 
-    QMenu
+    QMenu, QMenuBar
 )
 from PySide6.QtGui import QAction, QIcon
 from PySide6.QtCore import Qt, QThread, QTimer
@@ -24,6 +24,7 @@ from tennis_point_system import *
 from scene_data_class import SceneData
 from typing import List
 from filter_dialog_class import *
+from set_point_window_class import *
 
 class ProcessingThread(QThread):
     def __init__(self, input_path, output_path, application):
@@ -65,6 +66,118 @@ class MainWindow(QMainWindow):
         self.setCentralWidget(self.central_widget)
         # Create a vertical layout for the central widget
         self.layout = QVBoxLayout(self.central_widget)
+
+        # BUTTONS
+        # Create a list of buttons to activate
+        self.buttons_to_activate = []
+        self.buttons_to_deactivate_when_points = [] # disactivate when scenes are points
+        self.buttons_to_activate_when_points = [] # activate when scenes are points
+        # Create a menu bar
+        self.menu_bar = QMenuBar()
+        self.setMenuBar(self.menu_bar)
+
+        # Create menus
+        self.project_menu = self.menu_bar.addMenu("Project")
+        self.edit_menu = self.menu_bar.addMenu("Edit")
+        self.play_menu = self.menu_bar.addMenu("Play")
+        self.others_menu = self.menu_bar.addMenu("Others")
+
+        # Project menu actions
+        self.new_project_action = QAction("New Project", self)
+        self.new_project_action.triggered.connect(self.create_new_project)
+        self.project_menu.addAction(self.new_project_action)
+
+        self.load_project_action = QAction("Load Project", self)
+        self.load_project_action.triggered.connect(self.load_project)
+        self.project_menu.addAction(self.load_project_action)
+
+        self.save_project_action = QAction("Save Project", self)
+        self.save_project_action.triggered.connect(self.save_project)
+        self.project_menu.addAction(self.save_project_action)
+        self.buttons_to_activate.append(self.save_project_action)
+        self.save_project_action.setEnabled(False)
+
+        # Edit menu actions
+        self.select_all_action = QAction("Select All", self)
+        self.select_all_action.triggered.connect(self.select_all)
+        self.edit_menu.addAction(self.select_all_action)
+        self.buttons_to_activate.append(self.select_all_action)
+        self.select_all_action.setEnabled(False)
+
+        self.deselect_all_action = QAction("Deselect All", self)
+        self.deselect_all_action.triggered.connect(self.deselect_all)
+        self.edit_menu.addAction(self.deselect_all_action)
+        self.buttons_to_activate.append(self.deselect_all_action)
+        self.deselect_all_action.setEnabled(False)
+
+        self.delete_selected_action = QAction("Delete Selected", self)
+        self.delete_selected_action.triggered.connect(self.delete_selected)
+        self.edit_menu.addAction(self.delete_selected_action)
+        self.buttons_to_activate.append(self.delete_selected_action)
+        self.delete_selected_action.setEnabled(False)
+        self.buttons_to_deactivate_when_points.append(self.delete_selected_action)
+
+        self.create_macroscene_action = QAction("Create Macroscene", self)
+        self.create_macroscene_action.triggered.connect(self.obtain_scene_list_and_create_macroscene)
+        self.edit_menu.addAction(self.create_macroscene_action)
+        self.buttons_to_activate.append(self.create_macroscene_action)
+        self.create_macroscene_action.setEnabled(False)
+        self.buttons_to_deactivate_when_points.append(self.create_macroscene_action)
+
+        self.merge_action = QAction("Merge", self)
+        self.merge_action.triggered.connect(self.merge)
+        self.edit_menu.addAction(self.merge_action)
+        self.buttons_to_activate.append(self.merge_action)
+        self.merge_action.setEnabled(False)
+        self.buttons_to_deactivate_when_points.append(self.merge_action)
+
+        self.group_action = QAction("Group", self)
+        self.group_action.triggered.connect(self.group)
+        self.edit_menu.addAction(self.group_action)
+        self.buttons_to_activate.append(self.group_action)
+        self.group_action.setEnabled(False)
+        self.buttons_to_deactivate_when_points.append(self.group_action)
+
+        self.split_action = QAction("Split", self)
+        self.split_action.triggered.connect(self.split)
+        self.edit_menu.addAction(self.split_action)
+        self.buttons_to_activate.append(self.split_action)
+        self.split_action.setEnabled(False)
+        self.buttons_to_deactivate_when_points.append(self.split_action)
+
+        # Play menu actions
+        self.play_selected_action = QAction("Play Selected", self)
+        self.play_selected_action.triggered.connect(self.select_and_play)
+        self.play_menu.addAction(self.play_selected_action)
+        self.buttons_to_activate.append(self.play_selected_action)
+        self.play_selected_action.setEnabled(False)
+
+        # Others menu actions
+        self.process_action = QAction("Process", self)
+        self.process_action.triggered.connect(self.start_processing_thread)
+        self.others_menu.addAction(self.process_action)
+        self.buttons_to_activate.append(self.process_action)
+        self.process_action.setEnabled(False)
+
+        self.generate_video_action = QAction("Generate Video", self)
+        self.generate_video_action.triggered.connect(self.generate_video)
+        self.others_menu.addAction(self.generate_video_action)
+        self.buttons_to_activate.append(self.generate_video_action)
+        self.generate_video_action.setEnabled(False)
+
+        self.set_points_action = QAction("Set Points", self)
+        self.set_points_action.triggered.connect(self.initiate_set_points)
+        self.others_menu.addAction(self.set_points_action)
+        self.buttons_to_activate.append(self.set_points_action)
+        self.buttons_to_deactivate_when_points.append(self.set_points_action)
+        self.set_points_action.setEnabled(False)
+
+        self.jolly_action = QAction("Jolly", self)
+        self.jolly_action.triggered.connect(self.jolly)
+        self.others_menu.addAction(self.jolly_action)
+        self.buttons_to_activate.append(self.jolly_action)
+        self.jolly_action.setEnabled(False)
+
         # Create a splitter to hold the video frame the slider and the scroll area
         self.splitter = QSplitter(Qt.Vertical)
         self.layout.addWidget(self.splitter)
@@ -115,121 +228,6 @@ class MainWindow(QMainWindow):
         self.scroll_area.setWidget(self.scroll_content)
         self.splitter.addWidget(self.scroll_area)
 
-        # BUTTONS
-        # Create a list of buttons to activate
-        self.buttons_to_activate = []
-        self.buttons_to_deactivate_when_points = [] # disactivate when scenes are points
-        self.buttons_to_activate_when_points = [] # activate when scenes are points
-        # Create a horizontal layout for the buttons
-        self.buttons_layout = QHBoxLayout()
-        # New project button
-        self.new_project_button = QPushButton("New Project")
-        self.new_project_button.clicked.connect(self.create_new_project)
-        self.buttons_layout.addWidget(self.new_project_button)
-        # Load project button
-        self.load_project_button = QPushButton("Load Project")
-        self.load_project_button.clicked.connect(self.load_project)
-        self.buttons_layout.addWidget(self.load_project_button)
-        # Save project button
-        self.save_project_button = QPushButton("Save Project")
-        self.save_project_button.clicked.connect(self.save_project)
-        self.buttons_layout.addWidget(self.save_project_button)
-        self.buttons_to_activate.append(self.save_project_button)
-        self.save_project_button.setEnabled(False)
-        # Process button
-        self.process_button = QPushButton("Process")
-        self.process_button.clicked.connect(self.start_processing_thread)
-        self.buttons_layout.addWidget(self.process_button)
-        self.buttons_to_activate.append(self.process_button)
-        self.process_button.setEnabled(False)
-        # Select all button
-        self.select_all_button = QPushButton("Select All")
-        self.select_all_button.clicked.connect(self.select_all)
-        self.buttons_layout.addWidget(self.select_all_button)
-        self.buttons_to_activate.append(self.select_all_button)
-        self.select_all_button.setEnabled(False)
-        # Deselect all button
-        self.deselect_all_button = QPushButton("Deselect All")
-        self.deselect_all_button.clicked.connect(self.deselect_all)
-        self.buttons_layout.addWidget(self.deselect_all_button)
-        self.buttons_to_activate.append(self.deselect_all_button)
-        self.deselect_all_button.setEnabled(False)
-        # Play selected scenes button
-        self.play_selected_button = QPushButton("Play Selected")
-        self.play_selected_button.clicked.connect(self.select_and_play)
-        self.buttons_layout.addWidget(self.play_selected_button)
-        self.buttons_to_activate.append(self.play_selected_button)
-        self.play_selected_button.setEnabled(False)
-        # Delete selected scenes button
-        self.delete_selected_button = QPushButton("Delete Selected")
-        self.delete_selected_button.clicked.connect(self.delete_selected)
-        self.buttons_layout.addWidget(self.delete_selected_button)
-        self.buttons_to_activate.append(self.delete_selected_button)
-        self.delete_selected_button.setEnabled(False)
-        self.buttons_to_deactivate_when_points.append(self.delete_selected_button)
-        # Create macroscene button
-        self.create_macroscene_button = QPushButton("Create Macroscene")
-        self.create_macroscene_button.clicked.connect(self.obtain_scene_list_and_create_macroscene)
-        self.buttons_layout.addWidget(self.create_macroscene_button)
-        self.buttons_to_activate.append(self.create_macroscene_button)
-        self.create_macroscene_button.setEnabled(False)
-        self.buttons_to_deactivate_when_points.append(self.create_macroscene_button)
-        # Merge button
-        self.merge_button = QPushButton("Merge")
-        self.merge_button.clicked.connect(self.merge)
-        self.buttons_layout.addWidget(self.merge_button)
-        self.buttons_to_activate.append(self.merge_button)
-        self.merge_button.setEnabled(False)
-        self.buttons_to_deactivate_when_points.append(self.merge_button)
-        # Group button
-        self.group_button = QPushButton("Group")
-        self.group_button.clicked.connect(self.group)
-        self.buttons_layout.addWidget(self.group_button)
-        self.buttons_to_activate.append(self.group_button)
-        self.group_button.setEnabled(False)
-        self.buttons_to_deactivate_when_points.append(self.group_button)
-        # Split button
-        self.split_button = QPushButton("Split")
-        self.split_button.clicked.connect(self.split)
-        self.buttons_layout.addWidget(self.split_button)
-        self.buttons_to_activate.append(self.split_button)
-        self.split_button.setEnabled(False)
-        self.buttons_to_deactivate_when_points.append(self.split_button)
-        # Generate video button
-        self.generate_video_button = QPushButton("Generate Video")
-        self.generate_video_button.clicked.connect(self.generate_video)
-        self.buttons_layout.addWidget(self.generate_video_button)
-        self.buttons_to_activate.append(self.generate_video_button)
-        self.generate_video_button.setEnabled(False)
-        # Set Points button
-        self.set_points_button = QPushButton("Set Points")
-        self.set_points_button.clicked.connect(self.initiate_set_points)
-        self.buttons_layout.addWidget(self.set_points_button)
-        self.buttons_to_activate.append(self.set_points_button)
-        self.buttons_to_deactivate_when_points.append(self.set_points_button)
-        self.set_points_button.setEnabled(False)
-        # Who scored button
-        self.who_scored_button = QPushButton("Who Scored")
-        self.who_scored_button.clicked.connect(self.who_scored)
-        self.buttons_layout.addWidget(self.who_scored_button)
-        self.buttons_to_activate_when_points.append(self.who_scored_button)
-        self.who_scored_button.setEnabled(False)
-        # Filter button
-        self.filter_button = QPushButton("Filter")
-        self.filter_button.clicked.connect(self.filter)
-        self.buttons_layout.addWidget(self.filter_button)
-        self.buttons_to_activate_when_points.append(self.filter_button)
-        self.filter_button.setEnabled(False)
-        # Jolly button
-        self.jolly_button = QPushButton("Jolly")
-        self.jolly_button.clicked.connect(self.jolly)
-        self.buttons_layout.addWidget(self.jolly_button)
-        self.buttons_to_activate.append(self.jolly_button)
-        self.jolly_button.setEnabled(False)
-
-        # Add the buttons layout to the main layout
-        self.layout.addLayout(self.buttons_layout)
-
         # Directories, paths and base names
         self.project_path = None
         self.scene_file_path = None  # path del file scenes.txt
@@ -255,7 +253,8 @@ class MainWindow(QMainWindow):
         self.timer = QTimer(self)
         self.timer.timeout.connect(self.check_time)
 
-        # Indicates if every scene is a point or if the scenes needs to be modified by the user 
+        # Indicates if every scene is a point or if the scenes needs to be modified by the user
+        self.set_point_window = SetPointWindow(self)
         self.scene_is_point = False # If True, the scenes cannot be modified anymore (no merge, split, etc.)
         self.player1 = "Player 1"
         self.player2 = "Player 2"
@@ -642,7 +641,7 @@ class MainWindow(QMainWindow):
             with open(self.scores_file_path, "w") as scores_file:
                 scores_file.write("0 0\n0 0\n0 0 "+str(self.max_sets)+"\n")
 
-    def who_scored(self):
+    def who_scored(self, who_scored=None):
         current_point = None
         for point in self.scene_data:
             if point.point_winner is None:
@@ -650,9 +649,6 @@ class MainWindow(QMainWindow):
                 break
 
         if current_point is None:
-            print (self.score)
-            print (self.games)
-            print (self.sets)
             print ("All points have been played \n")
             return
         
@@ -662,8 +658,11 @@ class MainWindow(QMainWindow):
         check_box.setChecked(True)
 
         # point play
-        who_scored = self.ask_for_player()
-        if who_scored is not None:
+        if who_scored == 0:
+            self.select_and_play()
+        elif who_scored is None:
+            who_scored = self.ask_for_player()
+        elif who_scored is not None:
             current_point.point_winner = who_scored
             current_point.game = get_current_game(self)
             current_point.set = get_current_set(self)
@@ -675,10 +674,9 @@ class MainWindow(QMainWindow):
                 assign_point_tiebreak(self, who_scored)
             self.modified = True
 
-            print (self.score)
-            print (self.games)
-            print (self.sets)
-            print ("\n")
+        print (f"Score: {self.score}")
+        print (f"Games: {self.games}")
+        print (f"Sets: {self.sets}")
 
     def filter(self):
         dialog = FilterDialog(self)
@@ -896,6 +894,7 @@ class MainWindow(QMainWindow):
 
                     self.create_macroscene(macro_scene, button_text, None)
 
+            self.set_point_window.hide()
             if os.path.isfile(self.points_file_path):
                 self.initiate_set_points()
                 with open(self.points_file_path, "r") as points_file:
@@ -915,6 +914,10 @@ class MainWindow(QMainWindow):
                     sets = scores_file.readline().split()
                     self.sets = [int(sets[0]), int(sets[1])]
                     self.max_sets = int(sets[2])
+                self.set_point_window.set_current_game_score()
+                self.set_point_window.set_current_games_won()
+                self.set_point_window.set_current_sets_won()
+                self.set_point_window.show()
 
             if not os.path.isfile(self.points_file_path) and not os.path.isfile(self.scores_file_path):
                 self.scene_is_point = False
