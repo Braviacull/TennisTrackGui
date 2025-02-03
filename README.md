@@ -51,3 +51,6 @@ IMPORTANTE: usa cmd, non usare powershell (non sono riuscito a far funzionare co
 7) pip install PySide6
 8) pip install opencv-python
 9) pip install -r requirements.txt
+
+# SIDE NOTES
+1) App Icon made by Ina Mella from www.flaticon.com

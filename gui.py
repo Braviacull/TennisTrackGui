@@ -10,7 +10,7 @@ from PySide6.QtWidgets import (
     QSlider, QFileDialog, QLabel, QApplication, QSplitter, QInputDialog, QCheckBox, QMessageBox, 
     QMenu
 )
-from PySide6.QtGui import QAction
+from PySide6.QtGui import QAction, QIcon
 from PySide6.QtCore import Qt, QThread, QTimer
 from functools import partial
 
@@ -952,6 +952,7 @@ class MainWindow(QMainWindow):
 if __name__ == "__main__":
     # Create the application and main window, then run the application
     app = QApplication(sys.argv)
+    app.setWindowIcon(QIcon("icon.png"))
     window = MainWindow()
     window.show()
     app.exec()
