@@ -449,20 +449,24 @@ class MainWindow(QMainWindow):
             menu.addAction(ungroup)
 
         elif self.scene_is_point == True:
-            set_point = QAction("set point", self)
-            set_point.triggered.connect(partial(self.set_point_menu_action, button))
-            menu.addAction(set_point)
+            data = get_data_from_button(self, button)
+            if data.point_winner is not None:
+                set_point = QAction("set point", self)
+                set_point.triggered.connect(partial(self.set_point_menu_action, data))
+                menu.addAction(set_point)
+            else:
+                set_point = QAction("too far", self)
+                menu.addAction(set_point)
         
         # Show the context menu at the position of the button
         menu.exec(button.mapToGlobal(position))
 
-    def set_point_menu_action(self, button):
-        data = get_data_from_button(self, button)
-        winner = data.point_winner
+    def set_point_menu_action(self, data):
         winner = self.ask_for_player()
         if winner is None:
             return
         data.point_winner = winner
+        recalculate_match_state(self)
         self.modified = True
 
     def ungroup_menu_action(self, button):
@@ -710,22 +714,26 @@ class MainWindow(QMainWindow):
                         check_box.setChecked(False)
 
     def jolly(self):
-        for data in self.scene_data:
-            list = data.linked_list
-            container = data.container_widget
-            button = container.findChild(QPushButton)
-            print (button.text())
-            list.print_list()
-            print (data.checked)
-            if (data.point_winner is not None):
-                print ("point wininer is " + str(data.point_winner))
-            if (data.game is not None):
-                print ("Game: " + str(data.game))
-            if (data.set is not None):
-                print ("Set: " + str(data.set))
-            if (data.tiebreak == True):
-                print ("Tiebreak")
-            print ("---")
+        # for data in self.scene_data:
+        #     list = data.linked_list
+        #     container = data.container_widget
+        #     button = container.findChild(QPushButton)
+        #     print (button.text())
+        #     list.print_list()
+        #     print (data.checked)
+        #     if (data.point_winner is not None):
+        #         print ("point wininer is " + str(data.point_winner))
+        #     if (data.game is not None):
+        #         print ("Game: " + str(data.game))
+        #     if (data.set is not None):
+        #         print ("Set: " + str(data.set))
+        #     if (data.tiebreak == True):
+        #         print ("Tiebreak")
+        #     print ("---")
+        # print ("\n")
+        print (self.score)
+        print (self.games)
+        print (self.sets)
         print ("\n")
 
     def select_and_play(self):

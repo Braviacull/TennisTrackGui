@@ -116,3 +116,15 @@ def declare_match_winner (self, match_winner):
         self.winner = self.player2
 
     print ("Match winner is: " + self.winner)
+
+def recalculate_match_state (self):
+    self.score = [0, 0]
+    self.games = [0, 0]
+    self.sets = [0, 0]
+    self.winner = None
+    self.tiebreak = False
+    for data in self.scene_data:
+        if data.point_winner is not None:
+            assign_point(self, data.point_winner)
+        else: break
+
