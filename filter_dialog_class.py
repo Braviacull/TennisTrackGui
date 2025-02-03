@@ -1,9 +1,8 @@
 from PySide6.QtWidgets import QDialog, QVBoxLayout, QHBoxLayout, QLabel, QComboBox, QLineEdit, QPushButton, QMessageBox
 from PySide6.QtGui import QIntValidator
-from utils import get_custom_score
 
 class Filters:
-    def __init__(self, player: str, game: tuple, set: tuple, tiebreak: str):
+    def __init__(self, player: str, game: int, set: int, tiebreak: str):
         self.player = player
         self.game = game
         self.set = set
@@ -34,19 +33,14 @@ class FilterDialog(QDialog):
         game_label = QLabel("Game:")
         self.game_combo = QComboBox()
         self.game_combo.addItems(["All", "Custom"])
-        self.game_custom_1 = QLineEdit()
-        self.game_custom_1.setPlaceholderText("Enter game score 1")
-        self.game_custom_1.setEnabled(False)
-        self.game_custom_1.setValidator(QIntValidator())
-        self.game_custom_2 = QLineEdit()
-        self.game_custom_2.setPlaceholderText("Enter game score 2")
-        self.game_custom_2.setEnabled(False)
-        self.game_custom_2.setValidator(QIntValidator())
+        self.game_custom = QLineEdit()
+        self.game_custom.setPlaceholderText("Enter game number")
+        self.game_custom.setEnabled(False)
+        self.game_custom.setValidator(QIntValidator())
         self.game_combo.currentIndexChanged.connect(self.toggle_game_custom)
         game_layout.addWidget(game_label)
         game_layout.addWidget(self.game_combo)
-        game_layout.addWidget(self.game_custom_1)
-        game_layout.addWidget(self.game_custom_2)
+        game_layout.addWidget(self.game_custom)
         layout.addLayout(game_layout)
 
         # Set selection
@@ -54,19 +48,14 @@ class FilterDialog(QDialog):
         set_label = QLabel("Set:")
         self.set_combo = QComboBox()
         self.set_combo.addItems(["All", "Custom"])
-        self.set_custom_1 = QLineEdit()
-        self.set_custom_1.setPlaceholderText("Enter set score 1")
-        self.set_custom_1.setEnabled(False)
-        self.set_custom_1.setValidator(QIntValidator())
-        self.set_custom_2 = QLineEdit()
-        self.set_custom_2.setPlaceholderText("Enter set score 2")
-        self.set_custom_2.setEnabled(False)
-        self.set_custom_2.setValidator(QIntValidator())
+        self.set_custom = QLineEdit()
+        self.set_custom.setPlaceholderText("Enter set number")
+        self.set_custom.setEnabled(False)
+        self.set_custom.setValidator(QIntValidator())
         self.set_combo.currentIndexChanged.connect(self.toggle_set_custom)
         set_layout.addWidget(set_label)
         set_layout.addWidget(self.set_combo)
-        set_layout.addWidget(self.set_custom_1)
-        set_layout.addWidget(self.set_custom_2)
+        set_layout.addWidget(self.set_custom)
         layout.addLayout(set_layout)
 
         # Tiebreak selection
@@ -92,22 +81,20 @@ class FilterDialog(QDialog):
 
     def toggle_game_custom(self, index):
         is_custom = self.game_combo.currentText() == "Custom"
-        self.game_custom_1.setEnabled(is_custom)
-        self.game_custom_2.setEnabled(is_custom)
+        self.game_custom.setEnabled(is_custom)
 
     def toggle_set_custom(self, index):
         is_custom = self.set_combo.currentText() == "Custom"
-        self.set_custom_1.setEnabled(is_custom)
-        self.set_custom_2.setEnabled(is_custom)
+        self.set_custom.setEnabled(is_custom)
 
     def validate_and_accept(self):
         if self.game_combo.currentText() == "Custom":
-            if not self.game_custom_1.text().isdigit() or not self.game_custom_2.text().isdigit():
-                QMessageBox.warning(self, "Input Error", "Game scores must be integers.")
+            if not self.game_custom.text().isdigit():
+                QMessageBox.warning(self, "Input Error", "Game number must be an integer.")
                 return
         if self.set_combo.currentText() == "Custom":
-            if not self.set_custom_1.text().isdigit() or not self.set_custom_2.text().isdigit():
-                QMessageBox.warning(self, "Input Error", "Set scores must be integers.")
+            if not self.set_custom.text().isdigit():
+                QMessageBox.warning(self, "Input Error", "Set number must be an integer.")
                 return
         self.accept()
 
@@ -127,15 +114,14 @@ class FilterDialog(QDialog):
         tiebreak = tiebreak_mapping[self.tiebreak_combo.currentText()]
 
         if self.game_combo.currentText() == "Custom":
-            game = (get_custom_score(int(self.game_custom_1.text()), int(self.game_custom_2.text())))
-        elif self.game_combo.currentText() == "All":
+            game = int(self.game_custom.text())
+        else:
             game = 0
 
         if self.set_combo.currentText() == "Custom":
-            set = get_custom_score(int(self.set_custom_1.text()), int(self.set_custom_2.text()))
-        elif self.set_combo.currentText() == "All":
+            set = int(self.set_custom.text())
+        else:
             set = 0
-
 
         return Filters(
             player=player,

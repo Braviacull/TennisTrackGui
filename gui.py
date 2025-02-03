@@ -257,8 +257,8 @@ class MainWindow(QMainWindow):
 
         # Indicates if every scene is a point or if the scenes needs to be modified by the user 
         self.scene_is_point = False # If True, the scenes cannot be modified anymore (no merge, split, etc.)
-        self.player1 = "Sinner"
-        self.player2 = "Fritz"
+        self.player1 = "Player 1"
+        self.player2 = "Player 2"
         self.score = [0,0] # the game score
         self.games = [0,0] # the games score
         self.sets = [0,0] # the sets score
@@ -900,7 +900,6 @@ class MainWindow(QMainWindow):
                 self.initiate_set_points()
                 with open(self.points_file_path, "r") as points_file:
                     for line in points_file:
-                        print (line)
                         player, game, set, tiebreak, index = line.split()
                         self.scene_data[int(index)].point_winner = int(player)
                         self.scene_data[int(index)].game = int(game)
