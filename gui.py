@@ -118,7 +118,7 @@ class MainWindow(QMainWindow):
         # BUTTONS
         # Create a list of buttons to activate
         self.buttons_to_activate = []
-        self.buttons_to_deactivate = [] # disactivate when scenes are points
+        self.buttons_to_deactivate_when_points = [] # disactivate when scenes are points
         self.buttons_to_activate_when_points = [] # activate when scenes are points
         # Create a horizontal layout for the buttons
         self.buttons_layout = QHBoxLayout()
@@ -166,35 +166,35 @@ class MainWindow(QMainWindow):
         self.buttons_layout.addWidget(self.delete_selected_button)
         self.buttons_to_activate.append(self.delete_selected_button)
         self.delete_selected_button.setEnabled(False)
-        self.buttons_to_deactivate.append(self.delete_selected_button)
+        self.buttons_to_deactivate_when_points.append(self.delete_selected_button)
         # Create macroscene button
         self.create_macroscene_button = QPushButton("Create Macroscene")
         self.create_macroscene_button.clicked.connect(self.obtain_scene_list_and_create_macroscene)
         self.buttons_layout.addWidget(self.create_macroscene_button)
         self.buttons_to_activate.append(self.create_macroscene_button)
         self.create_macroscene_button.setEnabled(False)
-        self.buttons_to_deactivate.append(self.create_macroscene_button)
+        self.buttons_to_deactivate_when_points.append(self.create_macroscene_button)
         # Merge button
         self.merge_button = QPushButton("Merge")
         self.merge_button.clicked.connect(self.merge)
         self.buttons_layout.addWidget(self.merge_button)
         self.buttons_to_activate.append(self.merge_button)
         self.merge_button.setEnabled(False)
-        self.buttons_to_deactivate.append(self.merge_button)
+        self.buttons_to_deactivate_when_points.append(self.merge_button)
         # Group button
         self.group_button = QPushButton("Group")
         self.group_button.clicked.connect(self.group)
         self.buttons_layout.addWidget(self.group_button)
         self.buttons_to_activate.append(self.group_button)
         self.group_button.setEnabled(False)
-        self.buttons_to_deactivate.append(self.group_button)
+        self.buttons_to_deactivate_when_points.append(self.group_button)
         # Split button
         self.split_button = QPushButton("Split")
         self.split_button.clicked.connect(self.split)
         self.buttons_layout.addWidget(self.split_button)
         self.buttons_to_activate.append(self.split_button)
         self.split_button.setEnabled(False)
-        self.buttons_to_deactivate.append(self.split_button)
+        self.buttons_to_deactivate_when_points.append(self.split_button)
         # Generate video button
         self.generate_video_button = QPushButton("Generate Video")
         self.generate_video_button.clicked.connect(self.generate_video)
@@ -206,8 +206,8 @@ class MainWindow(QMainWindow):
         self.set_points_button.clicked.connect(self.initiate_set_points)
         self.buttons_layout.addWidget(self.set_points_button)
         self.buttons_to_activate.append(self.set_points_button)
+        self.buttons_to_deactivate_when_points.append(self.set_points_button)
         self.set_points_button.setEnabled(False)
-        self.buttons_to_deactivate.append(self.set_points_button)
         # Who scored button
         self.who_scored_button = QPushButton("Who Scored")
         self.who_scored_button.clicked.connect(self.who_scored)
@@ -218,7 +218,7 @@ class MainWindow(QMainWindow):
         self.filter_button = QPushButton("Filter")
         self.filter_button.clicked.connect(self.filter)
         self.buttons_layout.addWidget(self.filter_button)
-        self.buttons_to_activate.append(self.filter_button)
+        self.buttons_to_activate_when_points.append(self.filter_button)
         self.filter_button.setEnabled(False)
         # Jolly button
         self.jolly_button = QPushButton("Jolly")
@@ -627,7 +627,7 @@ class MainWindow(QMainWindow):
 
     def initiate_set_points(self):
         self.scene_is_point = True
-        deactivate_buttons(self.buttons_to_deactivate)
+        deactivate_buttons(self.buttons_to_deactivate_when_points)
         activate_buttons(self.buttons_to_activate_when_points)
 
         # create a new file points.txt
@@ -680,12 +680,34 @@ class MainWindow(QMainWindow):
         dialog = FilterDialog(self)
         if dialog.exec():
             filters = dialog.get_filters()
-            print(filters)  # Replace with actual filtering logic
+            print(filters)
             self.deselect_all()
+            if filters.player == 0:
+                for data in self.scene_data:
+                    if data.point_winner is not None:
+                        check_box = data.container_widget.findChild(QCheckBox)
+                        check_box.setChecked(True)
+            else:
+                for data in self.scene_data:
+                    if data.point_winner == filters.player:
+                        check_box = data.container_widget.findChild(QCheckBox)
+                        check_box.setChecked(True)
+
             for data in self.scene_data:
-                if data.point_winner == filters.player or filters.player == 0:
-                    check_box = data.container_widget.findChild(QCheckBox)
-                    check_box.setChecked(True)
+                if filters.game != 0:
+                    if data.game != filters.game:
+                        check_box = data.container_widget.findChild(QCheckBox)
+                        check_box.setChecked(False)
+                if filters.set != 0:
+                    if data.set != filters.set:
+                        check_box = data.container_widget.findChild(QCheckBox)
+                        check_box.setChecked(False)
+                if filters.tiebreak is not None:
+                    if data.tiebreak != filters.tiebreak:
+                        print (data.tiebreak)
+                        print (filters.tiebreak)
+                        check_box = data.container_widget.findChild(QCheckBox)
+                        check_box.setChecked(False)
 
     def jolly(self):
         for data in self.scene_data:
@@ -870,11 +892,12 @@ class MainWindow(QMainWindow):
                 self.initiate_set_points()
                 with open(self.points_file_path, "r") as points_file:
                     for line in points_file:
+                        print (line)
                         player, game, set, tiebreak, index = line.split()
                         self.scene_data[int(index)].point_winner = int(player)
                         self.scene_data[int(index)].game = int(game)
                         self.scene_data[int(index)].set = int(set)
-                        self.scene_data[int(index)].tiebreak = bool(tiebreak)
+                        self.scene_data[int(index)].tiebreak = tiebreak.lower() == "True"
 
             if os.path.isfile(self.scores_file_path):
                 with open(self.scores_file_path, "r") as scores_file:
@@ -885,6 +908,9 @@ class MainWindow(QMainWindow):
                     sets = scores_file.readline().split()
                     self.sets = [int(sets[0]), int(sets[1])]
                     self.max_sets = int(sets[2])
+
+            if not os.path.isfile(self.points_file_path) and not os.path.isfile(self.scores_file_path):
+                self.scene_is_point = False
 
             if self.games[0] == 6 and self.games[1] == 6:
                 self.tiebreak = True

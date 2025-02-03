@@ -68,7 +68,10 @@ def get_data_from_button(self, button):
             return data
 
 def get_current_game (self):
-    return self.games[0] + self.games[1] + 1
+    return get_custom_score(self.games[0], self.games[1])
 
 def get_current_set (self):
-    return self.sets[0] + self.sets[1] + 1
+    return get_custom_score(self.sets[0], self.sets[1])
+
+def get_custom_score (score1, score2):
+    return score1 + score2 + 1

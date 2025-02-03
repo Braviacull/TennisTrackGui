@@ -1,5 +1,6 @@
 from PySide6.QtWidgets import QDialog, QVBoxLayout, QHBoxLayout, QLabel, QComboBox, QLineEdit, QPushButton, QMessageBox
 from PySide6.QtGui import QIntValidator
+from utils import get_custom_score
 
 class Filters:
     def __init__(self, player: str, game: tuple, set: tuple, tiebreak: str):
@@ -125,8 +126,16 @@ class FilterDialog(QDialog):
         player = player_mapping[self.player_combo.currentText()]
         tiebreak = tiebreak_mapping[self.tiebreak_combo.currentText()]
 
-        game = (self.game_custom_1.text(), self.game_custom_2.text()) if self.game_combo.currentText() == "Custom" else self.game_combo.currentText()
-        set = (self.set_custom_1.text(), self.set_custom_2.text()) if self.set_combo.currentText() == "Custom" else self.set_combo.currentText()
+        if self.game_combo.currentText() == "Custom":
+            game = (get_custom_score(int(self.game_custom_1.text()), int(self.game_custom_2.text())))
+        elif self.game_combo.currentText() == "All":
+            game = 0
+
+        if self.set_combo.currentText() == "Custom":
+            set = get_custom_score(int(self.set_custom_1.text()), int(self.set_custom_2.text()))
+        elif self.set_combo.currentText() == "All":
+            set = 0
+
 
         return Filters(
             player=player,
