@@ -224,9 +224,11 @@ class MainWindow(QMainWindow):
         self.scroll_area.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOn)
         self.scroll_area.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOn)
         self.scroll_content = QWidget()  # container widget for the scroll area
-        self.scroll_layout = QHBoxLayout(self.scroll_content)
+        self.scroll_layout = QGridLayout(self.scroll_content)
         self.scroll_area.setWidget(self.scroll_content)
         self.splitter.addWidget(self.scroll_area)
+        self.scroll_area_widgets = []
+        self.scroll_area.resizeEvent = self.on_resize # Connect the resize event
 
         # Directories, paths and base names
         self.project_path = None
@@ -427,16 +429,42 @@ class MainWindow(QMainWindow):
         
         # Insert the container into the scroll_layout at the specified position
         if (position is None):
-            self.scroll_layout.addWidget(container)
+            self.scroll_area_widgets.append(container)
         else:
-            self.scroll_layout.insertWidget(position, container)
+            self.scroll_area_widgets.insert(position, container)
+        self.update_layout()
         
         # Insert the macroscene data into the scene_data list at the specified position
         if (position is None):
             self.scene_data.append(data)
         else:
             self.scene_data.insert(position, data)
+
         self.modified = True
+
+    def on_resize(self, event):
+        self.update_layout()
+        event.accept()
+
+    def update_layout(self):
+        # Clear the layout
+        for i in reversed(range(self.scroll_layout.count())):
+            self.scroll_layout.itemAt(i).widget().setParent(None)
+
+        # Calculate the number of columns based on the available width
+        available_width = self.scroll_area.viewport().width()
+        if self.scroll_area_widgets :
+            widget_width = self.scroll_area_widgets[0].sizeHint().width()
+            num_columns = max(1, available_width // widget_width)
+
+            # Add widgets to the layout
+            row, col = 0, 0
+            for widget in self.scroll_area_widgets :
+                self.scroll_layout.addWidget(widget, row, col)
+                col += 1
+                if col >= num_columns:
+                    col = 0
+                    row += 1
 
     def show_context_menu(self, position):
         menu = QMenu()
@@ -546,10 +574,7 @@ class MainWindow(QMainWindow):
         checkbox.setChecked(False)
         resulting_scene_data.linked_list = new_macroscene
 
-        for data in selected_scenes_data[1:]: # work with a copy of the list for deleting elements
-            remove_container_from_layout(data.container_widget, self.scroll_layout)
-            self.scene_data.remove(data)
-            self.modified = True
+        self.delete_selected()
 
     def split(self):
         if self.mediaplayer.is_playing(): # pause the video if necessary
@@ -756,6 +781,8 @@ class MainWindow(QMainWindow):
         for data in selected_scenes_data:
             remove_container_from_layout(data.container_widget, self.scroll_layout)
             self.scene_data.remove(data)
+            self.scroll_area_widgets.remove(data.container_widget)
+        self.update_layout()
         self.modified = True
 
     def select_all(self):
@@ -869,6 +896,7 @@ class MainWindow(QMainWindow):
 
             clear_layout(self.scroll_layout) # clear the layout before loading new project
             self.scene_data = [] # in this way, if you load more than once, the scene_data are not appended
+            self.scroll_area_widgets = [] # in this way, if you load more than once, the widgets are not appended
 
             activate_buttons(self.buttons_to_activate)
 
