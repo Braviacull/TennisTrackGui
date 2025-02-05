@@ -2,11 +2,17 @@ import pims
 import cv2
 import av
 
-# Funzione per leggere un video e restituire i frame e il frame rate
 def read_video(path_video):
-    video = pims.Video(path_video)
-    fps = video.frame_rate
-    frames = [frame for frame in video]
+    cap = cv2.VideoCapture(path_video, apiPreference=cv2.CAP_FFMPEG)
+    fps = int(cap.get(cv2.CAP_PROP_FPS))
+    frames = []
+    while cap.isOpened():
+        ret, frame = cap.read()
+        if ret:
+            frames.append(frame)
+        else:
+            break    
+    cap.release()
     return frames, fps
 
 # Funzione per scrivere i frame risultanti in un video
