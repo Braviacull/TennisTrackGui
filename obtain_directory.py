@@ -27,5 +27,5 @@ def obtain_base_name(self):
     elif os.path.isfile(pre_processed_path):
         return PRE_PROCESSED
     else:
-        print("No base name found")
+        print("Error: No base name found")
         return None

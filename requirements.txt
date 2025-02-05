@@ -10,3 +10,6 @@ tqdm
 opencv_python
 catboost
 python-vlc
+pims
+imageio[ffmpeg]
+av

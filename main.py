@@ -8,19 +8,7 @@ from ball_detector import BallDetector
 from utils import scene_detect
 import argparse
 import torch
-
-def read_video(path_video):
-    cap = cv2.VideoCapture(path_video)
-    fps = int(cap.get(cv2.CAP_PROP_FPS))
-    frames = []
-    while cap.isOpened():
-        ret, frame = cap.read()
-        if ret:
-            frames.append(frame)
-        else:
-            break    
-    cap.release()
-    return frames, fps
+from video_operations import read_video, write
 
 def get_court_img():
     court_reference = CourtReference()
@@ -122,16 +110,7 @@ def main(frames, scenes, bounces, ball_track, homography_matrices, kps_court, pe
 
         else:    
             imgs_res = imgs_res + frames[scenes[num_scene][0]:scenes[num_scene][1]] 
-    return imgs_res        
- 
-def write(imgs_res, fps, path_output_video):
-    height, width = imgs_res[0].shape[:2]
-    out = cv2.VideoWriter(path_output_video, cv2.VideoWriter_fourcc(*'DIVX'), fps, (width, height))
-    for num in range(len(imgs_res)):
-        frame = imgs_res[num]
-        out.write(frame)
-    out.release()    
-
+    return imgs_res       
 
 if __name__ == '__main__':
 
