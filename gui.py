@@ -78,8 +78,10 @@ class MainWindow(QMainWindow):
 
         # Create menus
         self.project_menu = self.menu_bar.addMenu("Project")
+        self.select_menu = self.menu_bar.addMenu("Select")
         self.edit_menu = self.menu_bar.addMenu("Edit")
-        self.play_menu = self.menu_bar.addMenu("Play")
+        self.video_menu = self.menu_bar.addMenu("Video")
+        self.match_menu = self.menu_bar.addMenu("Match")
         self.others_menu = self.menu_bar.addMenu("Others")
 
         # Project menu actions
@@ -97,19 +99,20 @@ class MainWindow(QMainWindow):
         self.buttons_to_activate.append(self.save_project_action)
         self.save_project_action.setEnabled(False)
 
-        # Edit menu actions
+        # Select menu actions
         self.select_all_action = QAction("Select All", self)
         self.select_all_action.triggered.connect(self.select_all)
-        self.edit_menu.addAction(self.select_all_action)
+        self.select_menu.addAction(self.select_all_action)
         self.buttons_to_activate.append(self.select_all_action)
         self.select_all_action.setEnabled(False)
 
         self.deselect_all_action = QAction("Deselect All", self)
         self.deselect_all_action.triggered.connect(self.deselect_all)
-        self.edit_menu.addAction(self.deselect_all_action)
+        self.select_menu.addAction(self.deselect_all_action)
         self.buttons_to_activate.append(self.deselect_all_action)
         self.deselect_all_action.setEnabled(False)
 
+        # Edit menu actions
         self.delete_selected_action = QAction("Delete Selected", self)
         self.delete_selected_action.triggered.connect(self.delete_selected)
         self.edit_menu.addAction(self.delete_selected_action)
@@ -145,33 +148,34 @@ class MainWindow(QMainWindow):
         self.split_action.setEnabled(False)
         self.buttons_to_deactivate_when_points.append(self.split_action)
 
-        # Play menu actions
+        # Video menu actions
         self.play_selected_action = QAction("Play Selected", self)
         self.play_selected_action.triggered.connect(self.select_and_play)
-        self.play_menu.addAction(self.play_selected_action)
+        self.video_menu.addAction(self.play_selected_action)
         self.buttons_to_activate.append(self.play_selected_action)
         self.play_selected_action.setEnabled(False)
 
-        # Others menu actions
         self.process_action = QAction("Process", self)
         self.process_action.triggered.connect(self.start_processing_thread)
-        self.others_menu.addAction(self.process_action)
+        self.video_menu.addAction(self.process_action)
         self.buttons_to_activate.append(self.process_action)
         self.process_action.setEnabled(False)
 
         self.generate_video_action = QAction("Generate Video", self)
         self.generate_video_action.triggered.connect(self.generate_video)
-        self.others_menu.addAction(self.generate_video_action)
+        self.video_menu.addAction(self.generate_video_action)
         self.buttons_to_activate.append(self.generate_video_action)
         self.generate_video_action.setEnabled(False)
 
+        # Match menu actions
         self.set_points_action = QAction("Set Points", self)
         self.set_points_action.triggered.connect(self.initiate_set_points)
-        self.others_menu.addAction(self.set_points_action)
+        self.match_menu.addAction(self.set_points_action)
         self.buttons_to_activate.append(self.set_points_action)
         self.buttons_to_deactivate_when_points.append(self.set_points_action)
         self.set_points_action.setEnabled(False)
 
+        # Others menu actions
         self.jolly_action = QAction("Jolly", self)
         self.jolly_action.triggered.connect(self.jolly)
         self.others_menu.addAction(self.jolly_action)
@@ -666,6 +670,32 @@ class MainWindow(QMainWindow):
             with open(self.scores_file_path, "w") as scores_file:
                 scores_file.write("0 0\n0 0\n0 0 "+str(self.max_sets)+"\n")
 
+        if not os.path.isfile(self.scores_file_path) or not os.path.isfile(self.points_file_path):
+            print ("Error: scores file not found")
+            return
+
+        with open(self.points_file_path, "r") as points_file:
+            for line in points_file:
+                player, game, set, tiebreak, index = line.split()
+                self.scene_data[int(index)].point_winner = int(player)
+                self.scene_data[int(index)].game = int(game)
+                self.scene_data[int(index)].set = int(set)
+                self.scene_data[int(index)].tiebreak = tiebreak.lower() == "True"
+
+        with open(self.scores_file_path, "r") as scores_file:
+            score = scores_file.readline().split()
+            self.score = [int(score[0]), int(score[1])]
+            games = scores_file.readline().split()
+            self.games = [int(games[0]), int(games[1])]
+            sets = scores_file.readline().split()
+            self.sets = [int(sets[0]), int(sets[1])]
+            self.max_sets = int(sets[2])
+
+        self.set_point_window.set_current_game_score()
+        self.set_point_window.set_current_games_won()
+        self.set_point_window.set_current_sets_won()
+        self.set_point_window.show()
+
     def who_scored(self, who_scored=None):
         current_point = None
         for point in self.scene_data:
@@ -925,27 +955,6 @@ class MainWindow(QMainWindow):
             self.set_point_window.hide()
             if os.path.isfile(self.points_file_path):
                 self.initiate_set_points()
-                with open(self.points_file_path, "r") as points_file:
-                    for line in points_file:
-                        player, game, set, tiebreak, index = line.split()
-                        self.scene_data[int(index)].point_winner = int(player)
-                        self.scene_data[int(index)].game = int(game)
-                        self.scene_data[int(index)].set = int(set)
-                        self.scene_data[int(index)].tiebreak = tiebreak.lower() == "True"
-
-            if os.path.isfile(self.scores_file_path):
-                with open(self.scores_file_path, "r") as scores_file:
-                    score = scores_file.readline().split()
-                    self.score = [int(score[0]), int(score[1])]
-                    games = scores_file.readline().split()
-                    self.games = [int(games[0]), int(games[1])]
-                    sets = scores_file.readline().split()
-                    self.sets = [int(sets[0]), int(sets[1])]
-                    self.max_sets = int(sets[2])
-                self.set_point_window.set_current_game_score()
-                self.set_point_window.set_current_games_won()
-                self.set_point_window.set_current_sets_won()
-                self.set_point_window.show()
 
             if not os.path.isfile(self.points_file_path) and not os.path.isfile(self.scores_file_path):
                 self.scene_is_point = False
