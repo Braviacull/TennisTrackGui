@@ -21,14 +21,14 @@ class PersonDetector():
 
     def detect(self, image, person_min_score=0.50):
         # Detect persons in the given image with a minimum score threshold
-        results = self.detection_model(image)
+        preds = self.detection_model(image)
         persons_boxes = []
         probs = []
-        for result in results:
-            for box, score, label in zip(result.boxes.xyxy, result.boxes.conf, result.boxes.cls):
+        for pred in preds:
+            for box, score, label in zip(pred.boxes.xyxy, pred.boxes.conf, pred.boxes.cls):
                 if label == 0 and score > person_min_score:  # label 0 is for person
-                    persons_boxes.append(box.cpu().numpy())
-                    probs.append(score.cpu().numpy())
+                    persons_boxes.append(box.detach().cpu().numpy())
+                    probs.append(score.detach().cpu().numpy())
         return persons_boxes, probs
 
     def detect_top_and_bottom_players(self, image, inv_matrix, filter_players=False):
