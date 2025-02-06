@@ -15,16 +15,16 @@ from PySide6.QtCore import Qt, QThread, QTimer
 from functools import partial
 
 from costants import *
-from video_operations import *
-from obtain_directory import *
-from play import *
-from linked_list import LinkedList
-from utils import *
-from tennis_point_system import *
-from scene_data_class import SceneData
+from utils.video_operations import *
+from utils.obtain_directory import *
+from utils.play import *
+from utils.linked_list import LinkedList
+from utils.utils import *
+from utils.tennis_point_system import *
+from classes.scene_data_class import SceneData
 from typing import List
-from filter_dialog_class import *
-from set_point_window_class import *
+from classes.filter_dialog_class import *
+from classes.set_point_window_class import *
 
 class ProcessingThread(QThread):
     def __init__(self, input_path, output_path, application):
@@ -991,7 +991,7 @@ class MainWindow(QMainWindow):
 if __name__ == "__main__":
     # Create the application and main window, then run the application
     app = QApplication(sys.argv)
-    app.setWindowIcon(QIcon("icon.png"))
+    app.setWindowIcon(QIcon("icons/icon.png"))
     window = MainWindow()
     window.show()
     app.exec()

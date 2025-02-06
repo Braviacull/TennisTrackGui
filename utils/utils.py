@@ -4,7 +4,7 @@ from scenedetect.stats_manager import StatsManager
 from scenedetect.detectors import ContentDetector
 from PySide6.QtWidgets import QPushButton
 from typing import List
-from scene_data_class import SceneData
+from classes.scene_data_class import SceneData
 
 def scene_detect(path_video):
     """

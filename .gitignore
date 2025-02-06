@@ -1,5 +1,7 @@
 # Escludere la cartella __pycache__
 __pycache__/
+classes/__pycache__/
+utils/__pycache__/
 
 # Escludere i file .pyc e .pyo
 *.pyc

@@ -1,6 +1,4 @@
-import pims
 import cv2
-import av
 
 def read_video(path_video):
     cap = cv2.VideoCapture(path_video, apiPreference=cv2.CAP_FFMPEG)
@@ -11,7 +9,7 @@ def read_video(path_video):
         if ret:
             frames.append(frame)
         else:
-            break    
+            break
     cap.release()
     return frames, fps
 

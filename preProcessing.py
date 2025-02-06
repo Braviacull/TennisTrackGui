@@ -1,7 +1,7 @@
 from court_detection_net import CourtDetectorNet
-from utils import scene_detect
+from utils.utils import scene_detect
 import argparse
-from video_operations import read_video, write
+from utils.video_operations import read_video, write
 import torch
 
 # Funzione principale per elaborare i frame del video

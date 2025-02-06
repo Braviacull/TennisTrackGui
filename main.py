@@ -5,10 +5,10 @@ from court_reference import CourtReference
 from bounce_detector import BounceDetector
 from person_detector import PersonDetector
 from ball_detector import BallDetector
-from utils import scene_detect
+from utils.utils import scene_detect
 import argparse
 import torch
-from video_operations import read_video, write
+from utils.video_operations import read_video, write
 
 def get_court_img():
     court_reference = CourtReference()

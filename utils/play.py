@@ -1,5 +1,5 @@
 import sys
-from video_operations import frame_to_time
+from utils.video_operations import frame_to_time
 
 def play_scene(self):
     
