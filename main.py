@@ -9,6 +9,7 @@ from utils.utils import scene_detect
 import argparse
 import torch
 from utils.video_operations import read_video, write
+import datetime
 
 def get_court_img():
     court_reference = CourtReference()
@@ -135,8 +136,11 @@ if __name__ == '__main__':
     homography_matrices, kps_court = court_detector.infer_model(frames)
 
     print('person detection')
-    person_detector = PersonDetector(device)
+    start_time = datetime.datetime.now()
+    person_detector = PersonDetector()
     persons_top, persons_bottom = person_detector.track_players(frames, homography_matrices, filter_players=False)
+    end_time = datetime.datetime.now()
+    print('time for person detection:', end_time - start_time)
 
     # bounce detection
     bounce_detector = BounceDetector(args.path_bounce_model)

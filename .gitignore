@@ -1,12 +1,13 @@
-# Escludere la cartella __pycache__
-__pycache__/
+# Escludere cartelle
 classes/__pycache__/
 utils/__pycache__/
+.vscode/
 
 # Escludere i file .pyc e .pyo
 *.pyc
 *.pyo
 *.pyd
+*.pt
 
 # Escludere i file di log e i profili di Python
 *.log

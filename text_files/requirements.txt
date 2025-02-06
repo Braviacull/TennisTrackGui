@@ -10,3 +10,4 @@ tqdm
 opencv_python
 catboost
 python-vlc
+ultralytics
