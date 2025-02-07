@@ -930,6 +930,9 @@ class MainWindow(QMainWindow):
 
             activate_buttons(self.buttons_to_activate)
 
+            if self.base_name == PROCESSED:
+                self.process_action.setEnabled(False)
+
             self.num_frames = 0
             with open(self.scene_file_path, "r") as scene_file:
                 for line in scene_file:
