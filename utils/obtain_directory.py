@@ -15,9 +15,19 @@ def obtain_output_dir(self):
 
 def obtain_project_dir(self):
     if not self.project_path:
-        print("No project loaded")
+        print("Error: No project loaded")
         return
     return self.project_path
+
+def obtain_jsons_dir(path_output_video):
+    # Obtain the project directory
+    project_dir = os.path.dirname(os.path.dirname(path_output_video))
+    
+    # Build the jsons directory
+    jsons_dir = os.path.join(project_dir, 'jsons')
+    
+    return jsons_dir
+    
 
 def obtain_base_name(self):
     processed_path = os.path.join(obtain_output_dir(self), PROCESSED)

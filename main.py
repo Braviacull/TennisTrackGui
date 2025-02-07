@@ -1,3 +1,5 @@
+import json
+import os
 import cv2
 from court_detection_net import CourtDetectorNet
 import numpy as np
@@ -9,6 +11,7 @@ from utils.utils import scene_detect
 import argparse
 import torch
 from utils.video_operations import read_video, write
+from utils.obtain_directory import obtain_jsons_dir
 
 def get_court_img():
     court_reference = CourtReference()
@@ -131,8 +134,27 @@ if __name__ == '__main__':
     ball_track = ball_detector.infer_model(frames)
 
     print('court detection')
-    court_detector = CourtDetectorNet(args.path_court_model, device)
-    homography_matrices, kps_court = court_detector.infer_model(frames)
+
+    homography_matrices = []
+    kps_court = []
+    
+    jsons_dir = obtain_jsons_dir(args.path_output_video)
+    homography_matrices_path = os.path.join(jsons_dir, 'homography_matrices.json')
+    kps_court_path = os.path.join(jsons_dir, 'kps_court.json')
+
+    if os.path.isfile(homography_matrices_path) and os.path.isfile(kps_court_path):
+        with open(homography_matrices_path, 'r') as json_file:
+            homography_matrices = json.load(json_file)
+        with open(kps_court_path, 'r') as json_file:
+            kps_court = json.load(json_file)
+
+        # Converti le liste in array di NumPy
+        homography_matrices = [np.array(matrix) for matrix in homography_matrices]
+        kps_court = [np.array(kps) for kps in kps_court]
+
+    else:
+        court_detector = CourtDetectorNet(args.path_court_model, device)
+        homography_matrices, kps_court = court_detector.infer_model(frames)
 
     print('person detection')
     person_detector = PersonDetector()

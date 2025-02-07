@@ -6,9 +6,11 @@ import numpy as np
 from scipy.spatial import distance
 from tqdm import tqdm
 from ultralytics import YOLO
+import logging
 
 class PersonDetector():
     def __init__(self, model_path='yolov8x'):
+        logging.getLogger('ultralytics').setLevel(logging.ERROR)
         # Initialize the YOLOv8 model
         self.detection_model = YOLO(model_path)
         self.court_ref = CourtReference()
