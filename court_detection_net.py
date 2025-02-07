@@ -6,6 +6,7 @@ import torch.nn.functional as F
 from tqdm import tqdm
 from postprocess import refine_kps
 from homography import get_trans_matrix, refer_kps
+from utils.video_operations import read_video_generator, get_total_frames	
 
 
 # Classe per il rilevamento del campo da tennis
@@ -20,14 +21,17 @@ class CourtDetectorNet():
             self.model = self.model.to(device)
             self.model.eval()
 
-    def infer_model(self, frames):
+    def infer_model(self, video_path):
         output_width = 640
         output_height = 360
         scale = 2
 
         kps_res = []  # Lista per memorizzare i punti chiave rilevati
         matrixes_res = []  # Lista per memorizzare le matrici di trasformazione
-        for num_frame, image in enumerate(tqdm(frames)):
+
+        total_frames = get_total_frames(video_path)
+        
+        for num_frame, image in enumerate(tqdm(read_video_generator(video_path), total = total_frames)):
             # Ridimensiona l'immagine
             img = cv2.resize(image, (output_width, output_height))
             inp = (img.astype(np.float32) / 255.)

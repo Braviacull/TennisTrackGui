@@ -13,6 +13,38 @@ def read_video(path_video):
     cap.release()
     return frames, fps
 
+def read_video_generator(path_video):
+    cap = cv2.VideoCapture(path_video, apiPreference=cv2.CAP_FFMPEG)
+    while cap.isOpened():
+        ret, frame = cap.read()
+        if ret:
+            yield frame #generate frame
+        else:
+            break
+    cap.release()
+
+def read_video_generator_interval(path_video, start_frame, end_frame):
+    cap = cv2.VideoCapture(path_video, apiPreference=cv2.CAP_FFMPEG)
+    cap.set(cv2.CAP_PROP_POS_FRAMES, start_frame)
+    while cap.isOpened():
+        ret, frame = cap.read()
+        if ret:
+            if start_frame <= cap.get(cv2.CAP_PROP_POS_FRAMES) <= end_frame:
+                yield frame #generate frame
+            elif cap.get(cv2.CAP_PROP_POS_FRAMES) > end_frame:
+                break
+        else:
+            break
+        if cap.get(cv2.CAP_PROP_POS_FRAMES) == end_frame:
+            break
+    cap.release()
+
+def get_total_frames(path_video):
+    cap = cv2.VideoCapture(path_video)
+    total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+    cap.release()
+    return total_frames
+
 # Funzione per scrivere i frame risultanti in un video
 def write(imgs_res, fps, path_output_video):
     height, width = imgs_res[0].shape[:2]

@@ -883,7 +883,7 @@ class MainWindow(QMainWindow):
                 self.base_name = os.path.basename(input_video_path)
                 shutil.copy(input_video_path, obtain_input_dir(self))
                 self.pre_processing()
-                self.load_project(self.project_path)
+                # self.load_project(self.project_path)
 
     def load_project(self, project_path=None):
         if not project_path: # if the load project button is clicked
