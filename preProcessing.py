@@ -2,11 +2,12 @@ from court_detection_net import CourtDetectorNet
 from utils.utils import scene_detect
 from utils.obtain_directory import obtain_jsons_dir
 import argparse
-from utils.video_operations import read_video, write
+from utils.video_operations import get_frame_rate, get_total_frames, write_video_generator_intervals
 import torch
 import json
 import numpy as np
 import os
+import time
 
 # Funzione principale per elaborare i frame del video
 def main(scenes, homography_matrices, kps_court):
@@ -57,6 +58,8 @@ if __name__ == '__main__':
     parser.add_argument('--path_scene_file', type=str, help='path to scenes.txt file')
     args = parser.parse_args()
 
+    start_time = time.time()
+
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
     print (device + "\n")
 
@@ -69,27 +72,31 @@ if __name__ == '__main__':
 
     selected_indexes, homography_matrices, kps_court = main(scenes, homography_matrices, kps_court)
 
-    # for i in range(fps):
-    #     imgs_res.append(imgs_res[-1])
-    #     homography_matrices.append(homography_matrices[-1])
-    #     kps_court.append(kps_court[-1])
+    selected_scenes = []
+    for i in selected_indexes:
+        selected_scenes.append(scenes[i])
 
-    # # Convert the numpy arrays to lists
-    # homography_matrices_list = [matrix.tolist() if isinstance(matrix, np.ndarray) else matrix for matrix in homography_matrices]
-    # kps_court_list = [kps.tolist() if isinstance(kps, np.ndarray) else kps for kps in kps_court]
+    fps = get_frame_rate(args.path_input_video)
+    for i in range(fps): # padding
+        homography_matrices.append(homography_matrices[-1])
+        kps_court.append(kps_court[-1])
 
-    # # Save the lists to json files
-    # jsons_dir = obtain_jsons_dir(args.path_output_video)
-    # os.makedirs(jsons_dir, exist_ok=True)
+    # Convert the numpy arrays to lists
+    homography_matrices_list = [matrix.tolist() if isinstance(matrix, np.ndarray) else matrix for matrix in homography_matrices]
+    kps_court_list = [kps.tolist() if isinstance(kps, np.ndarray) else kps for kps in kps_court]
 
-    # with open(os.path.join(jsons_dir, "homography_matrices.json"), 'w') as json_file:
-    #     json.dump(homography_matrices_list, json_file)
+    # Save the lists to json files
+    jsons_dir = obtain_jsons_dir(args.path_output_video)
+    os.makedirs(jsons_dir, exist_ok=True)
 
-    # with open(os.path.join(jsons_dir, "kps_court.json"), 'w') as json_file:
-    #     json.dump(kps_court_list, json_file)
+    with open(os.path.join(jsons_dir, "homography_matrices.json"), 'w') as json_file:
+        json.dump(homography_matrices_list, json_file)
 
-    # write(imgs_res, fps, args.path_output_video)
+    with open(os.path.join(jsons_dir, "kps_court.json"), 'w') as json_file:
+        json.dump(kps_court_list, json_file)
 
+    write_video_generator_intervals(fps, selected_scenes, args.path_input_video, args.path_output_video)
 
-
-    
+    execution_time_in_seconds= time.time() - start_time
+    execution_time_in_minutes = execution_time_in_seconds / 60
+    print(f"Execution time: {execution_time_in_minutes} minutes")

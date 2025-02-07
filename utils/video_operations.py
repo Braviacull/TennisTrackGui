@@ -1,4 +1,5 @@
 import cv2
+from tqdm import tqdm
 
 def read_video(path_video):
     cap = cv2.VideoCapture(path_video, apiPreference=cv2.CAP_FFMPEG)
@@ -45,7 +46,7 @@ def get_total_frames(path_video):
     cap.release()
     return total_frames
 
-# Funzione per scrivere i frame risultanti in un video
+# # Funzione per scrivere i frame risultanti in un video
 def write(imgs_res, fps, path_output_video):
     height, width = imgs_res[0].shape[:2]
     out = cv2.VideoWriter(path_output_video, cv2.VideoWriter_fourcc(*'DIVX'), fps, (width, height))
@@ -53,6 +54,30 @@ def write(imgs_res, fps, path_output_video):
         frame = imgs_res[num]
         out.write(frame)
     out.release()
+
+def write_video_generator_intervals(fps, scenes, path_input_video, path_output_video):
+    height, width = get_height_width(path_input_video)
+    out = cv2.VideoWriter(path_output_video, cv2.VideoWriter_fourcc(*'DIVX'), fps, (width, height))
+
+    for scene in scenes:
+        start_frame = scene[0]
+        end_frame = scene[1]
+        total_frames = end_frame - start_frame
+        last_frame = None
+        for num_frame, frame in enumerate(tqdm(read_video_generator_interval(path_input_video, start_frame, end_frame), total = total_frames)):
+            out.write(frame)
+            last_frame = frame
+    for i in range(fps): # padding
+        out.write(last_frame)
+
+    out.release()
+
+def get_height_width(path_video):
+    cap = cv2.VideoCapture(path_video)
+    height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+    width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+    cap.release()
+    return height, width
 
 def get_frame_rate(video_path):
     # Apri il video

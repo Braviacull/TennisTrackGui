@@ -17,14 +17,15 @@ IMPORTANT: use cmd, do not use PowerShell (I couldn't get conda to work on Power
 * If you have a CUDA-compatible GPU and intend to use it. 
 -->
 1) Install conda (or miniconda). We will use it only to create and activate the environment.
-2) * Update NVIDIA drivers (preferably studio version).
-3) * Install compatible CUDA Toolkit and PyTorch (check the PyTorch website).
-4) * Run python tests/cudaTest.py (if it returns True, then everything went well and the GPU will be used for calculations).
-5) conda create --name tennis or any other name you want to give to your environment.
-6) conda activate tennis or any other name chosen in the previous step.
+2) conda create --name tennis or any other name you want to give to your environment.
+3) conda activate tennis or any other name chosen in the previous step.
+4) * Update NVIDIA drivers (preferably studio version).
+5) * Install compatible CUDA Toolkit and PyTorch (check the PyTorch website).
+6) * Run python tests/cudaTest.py (if it returns True, then everything went well and the GPU will be used for calculations).
 7) pip install PySide6
 8) pip install opencv-python
 9) pip install -r text_files/requirements.txt
+10) install vlc media player (make sure is the 64bit version)
 
 # SIDE NOTES
 1) App Icon made by Ina Mella from www.flaticon.com

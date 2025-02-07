@@ -12,6 +12,7 @@ import argparse
 import torch
 from utils.video_operations import read_video, write
 from utils.obtain_directory import obtain_jsons_dir
+import time
 
 def get_court_img():
     court_reference = CourtReference()
@@ -116,7 +117,6 @@ def main(frames, scenes, bounces, ball_track, homography_matrices, kps_court, pe
     return imgs_res       
 
 if __name__ == '__main__':
-
     parser = argparse.ArgumentParser()
     parser.add_argument('--path_ball_track_model', type=str, help='path to pretrained model for ball detection')
     parser.add_argument('--path_court_model', type=str, help='path to pretrained model for court detection')
@@ -124,6 +124,8 @@ if __name__ == '__main__':
     parser.add_argument('--path_input_video', type=str, help='path to input video')
     parser.add_argument('--path_output_video', type=str, help='path to output video')
     args = parser.parse_args()
+
+    start_time = time.time()
     
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
     frames, fps = read_video(args.path_input_video) 
@@ -134,7 +136,6 @@ if __name__ == '__main__':
     ball_track = ball_detector.infer_model(frames)
 
     print('court detection')
-
     homography_matrices = []
     kps_court = []
     
@@ -151,7 +152,6 @@ if __name__ == '__main__':
         # Converti le liste in array di NumPy
         homography_matrices = [np.array(matrix) for matrix in homography_matrices]
         kps_court = [np.array(kps) for kps in kps_court]
-
     else:
         court_detector = CourtDetectorNet(args.path_court_model, device)
         homography_matrices, kps_court = court_detector.infer_model(frames)
@@ -170,6 +170,10 @@ if __name__ == '__main__':
                     draw_trace=True)
 
     write(imgs_res, fps, args.path_output_video)
+
+    execution_time = time.time() - start_time
+    execution_time_in_minutes = execution_time
+    print(f"Execution time: {execution_time_in_minutes} minutes")
 
 
 
