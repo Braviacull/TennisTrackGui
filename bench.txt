@@ -1,0 +1,5 @@
+time for person detection: 0:00:22.252361 with yolo
+
+preprocessing a 36 seconds video required 224 seconds
+
+preprocessing a 1h and 36 minutes video required 469 minutes, almost 8 h. The resulting video is 36 minutes long. 
