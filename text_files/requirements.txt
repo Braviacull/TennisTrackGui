@@ -2,14 +2,11 @@ PySide6
 opencv-python
 matplotlib
 scenedetect
-numpy
 scipy
-torch
-torchvision
 pandas
-sympy
 tqdm
 opencv_python
 catboost
 python-vlc
 ultralytics
+torch

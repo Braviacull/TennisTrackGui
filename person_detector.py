@@ -7,6 +7,7 @@ from scipy.spatial import distance
 from tqdm import tqdm
 from ultralytics import YOLO
 import logging
+from utils.video_operations import read_video_generator, get_total_frames
 
 class PersonDetector():
     def __init__(self, model_path='yolov8x'):
@@ -70,13 +71,17 @@ class PersonDetector():
             person_bboxes_bottom = [person_bboxes_bottom[ind]]
         return person_bboxes_top, person_bboxes_bottom
 
-    def track_players(self, frames, matrix_all, filter_players=False):
+    def track_players(self, video_path, matrix_all, filter_players=False):
         # Track players across multiple frames
         persons_top = []
         persons_bottom = []
-        min_len = min(len(frames), len(matrix_all))
+
+        total_frames = get_total_frames(video_path)
+        frame_iterator = iter(read_video_generator(video_path))
+
+        min_len = min(total_frames, len(matrix_all))
         for num_frame in tqdm(range(min_len)):
-            img = frames[num_frame]
+            img = next(frame_iterator)
             if matrix_all[num_frame] is not None:
                 inv_matrix = matrix_all[num_frame]
                 person_top, person_bottom = self.detect_top_and_bottom_players(img, inv_matrix, filter_players)

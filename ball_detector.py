@@ -4,6 +4,7 @@ import cv2
 import numpy as np
 from scipy.spatial import distance
 from tqdm import tqdm
+from utils.video_operations import read_video_generator, get_total_frames	
 
 class BallDetector:
     def __init__(self, path_model=None, device='cuda'):
@@ -16,7 +17,7 @@ class BallDetector:
         self.width = 640
         self.height = 360
 
-    def infer_model(self, frames):
+    def infer_model(self, video_path):
         """ Run pretrained model on a consecutive list of frames
         :params
             frames: list of consecutive video frames
@@ -25,20 +26,34 @@ class BallDetector:
         """
         ball_track = [(None, None)]*2
         prev_pred = [None, None]
-        for num in tqdm(range(2, len(frames))):
-            img = cv2.resize(frames[num], (self.width, self.height))
-            img_prev = cv2.resize(frames[num-1], (self.width, self.height))
-            img_preprev = cv2.resize(frames[num-2], (self.width, self.height))
-            imgs = np.concatenate((img, img_prev, img_preprev), axis=2)
-            imgs = imgs.astype(np.float32)/255.0
-            imgs = np.rollaxis(imgs, 2, 0)
-            inp = np.expand_dims(imgs, axis=0)
 
-            out = self.model(torch.from_numpy(inp).float().to(self.device))
-            output = out.argmax(dim=1).detach().cpu().numpy()
-            x_pred, y_pred = self.postprocess(output, prev_pred)
-            prev_pred = [x_pred, y_pred]
-            ball_track.append((x_pred, y_pred))
+        total_frames = get_total_frames(video_path) - 2
+
+        img_preprev = None
+        img_prev = None
+        for num_frame, img in enumerate(tqdm(read_video_generator(video_path), total = total_frames)):
+            if num_frame == 0:
+                img_preprev = img
+            elif num_frame == 1:
+                img_prev = img
+            elif num_frame > 1:
+                img = cv2.resize(img, (self.width, self.height))
+                img_prev = cv2.resize(img_prev, (self.width, self.height))
+                img_preprev = cv2.resize(img_preprev, (self.width, self.height))
+                imgs = np.concatenate((img, img_prev, img_preprev), axis=2)
+                imgs = imgs.astype(np.float32)/255.0
+                imgs = np.rollaxis(imgs, 2, 0)
+                inp = np.expand_dims(imgs, axis=0)
+
+                out = self.model(torch.from_numpy(inp).float().to(self.device))
+                output = out.argmax(dim=1).detach().cpu().numpy()
+                x_pred, y_pred = self.postprocess(output, prev_pred)
+                prev_pred = [x_pred, y_pred]
+                ball_track.append((x_pred, y_pred))
+
+                # Update frames
+                img_preprev = img_prev
+                img_prev = img
         return ball_track
 
     def postprocess(self, feature_map, prev_pred, scale=2, max_dist=80):

@@ -99,4 +99,5 @@ if __name__ == '__main__':
 
     execution_time_in_seconds= time.time() - start_time
     execution_time_in_minutes = execution_time_in_seconds / 60
+    print(f"Execution time: {execution_time_in_seconds} seconds")
     print(f"Execution time: {execution_time_in_minutes} minutes")

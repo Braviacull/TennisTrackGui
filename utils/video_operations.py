@@ -46,7 +46,7 @@ def get_total_frames(path_video):
     cap.release()
     return total_frames
 
-# # Funzione per scrivere i frame risultanti in un video
+# Funzione per scrivere i frame risultanti in un video
 def write(imgs_res, fps, path_output_video):
     height, width = imgs_res[0].shape[:2]
     out = cv2.VideoWriter(path_output_video, cv2.VideoWriter_fourcc(*'DIVX'), fps, (width, height))
@@ -69,6 +69,15 @@ def write_video_generator_intervals(fps, scenes, path_input_video, path_output_v
             last_frame = frame
     for i in range(fps): # padding
         out.write(last_frame)
+
+    out.release()
+
+def write_video_generator_one_frame_at_time(fps, path_input_video, path_output_video):
+    height, width = get_height_width(path_input_video)
+    out = cv2.VideoWriter(path_output_video, cv2.VideoWriter_fourcc(*'DIVX'), fps, (width, height))
+
+    for frame in tqdm(read_video_generator(path_input_video)):
+        out.write(frame)
 
     out.release()
 
