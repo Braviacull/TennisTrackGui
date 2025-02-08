@@ -895,6 +895,7 @@ class MainWindow(QMainWindow):
                 return
             project_path = QFileDialog.getExistingDirectory(self, "Select Project Directory", "projects")
         if project_path:
+            self.setWindowTitle("TennisTrack" + " - " + os.path.basename(project_path))
             self.project_path = project_path
             self.scene_file_path = os.path.join(self.project_path, "scenes.txt")
             self.points_file_path = os.path.join(self.project_path, "points.txt")

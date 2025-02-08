@@ -1,6 +1,7 @@
 import json
 import os
 import cv2
+from tqdm import tqdm
 from court_detection_net import CourtDetectorNet
 import numpy as np
 from court_reference import CourtReference
@@ -21,7 +22,7 @@ def get_court_img():
     court_img = (np.stack((court, court, court), axis=2)*255).astype(np.uint8)
     return court_img
 
-def main(input_video_path, output_video_path, bounces, ball_track, kps_court, persons_top, persons_bottom,
+def drawing(input_video_path, output_video_path, bounces, ball_track, kps_court, persons_top, persons_bottom,
          draw_trace=False, trace=7):
     """
     :params
@@ -46,7 +47,8 @@ def main(input_video_path, output_video_path, bounces, ball_track, kps_court, pe
     total_frames = get_total_frames(input_video_path)
     frame_iterator = iter(read_video_generator(input_video_path))
 
-    for i in range(total_frames):
+    print('drawing')
+    for i in tqdm(range(total_frames)):
         court_img = get_court_img()
 
         frame = next(frame_iterator)
@@ -109,7 +111,7 @@ def main(input_video_path, output_video_path, bounces, ball_track, kps_court, pe
         frame[30:(30 + height_minimap), (width - 30 - width_minimap):(width - 30), :] = minimap
         out.write(frame)
 
-    out.release()    
+    out.release()
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
@@ -126,15 +128,9 @@ if __name__ == '__main__':
 
     if os.path.isfile(homography_matrices_path) and os.path.isfile(kps_court_path):
         start_time = time.time()
-
         device = 'cuda' if torch.cuda.is_available() else 'cpu'
-        scenes = scene_detect(args.path_input_video)
 
-        print('ball detection')
-        ball_detector = BallDetector(args.path_ball_track_model, device)
-        ball_track = ball_detector.infer_model(args.path_input_video)
-
-        print('court detection')
+        # Getting homography matrices and court keypoints
         homography_matrices = []
         kps_court = []
 
@@ -151,13 +147,17 @@ if __name__ == '__main__':
         person_detector = PersonDetector()
         persons_top, persons_bottom = person_detector.track_players(args.path_input_video, homography_matrices, filter_players=False)
 
+        print('ball detection')
+        ball_detector = BallDetector(args.path_ball_track_model, device)
+        ball_track = ball_detector.infer_model(args.path_input_video)
+
         # bounce detection
         bounce_detector = BounceDetector(args.path_bounce_model)
         x_ball = [x[0] for x in ball_track]
         y_ball = [x[1] for x in ball_track]
         bounces = bounce_detector.predict(x_ball, y_ball)
 
-        main(args.path_input_video, args.path_output_video, bounces, ball_track, kps_court, persons_top, persons_bottom, draw_trace=True)
+        drawing(args.path_input_video, args.path_output_video, bounces, ball_track, kps_court, persons_top, persons_bottom, draw_trace=True)
 
         execution_time_in_seconds= time.time() - start_time
         execution_time_in_minutes = execution_time_in_seconds / 60
