@@ -498,6 +498,9 @@ class MainWindow(QMainWindow):
             return
         data.point_winner = winner
         recalculate_match_state(self)
+        self.set_point_window.set_current_game_score()
+        self.set_point_window.set_current_games_won()
+        self.set_point_window.set_current_sets_won()
         self.modified = True
 
     def ungroup_menu_action(self, button):
