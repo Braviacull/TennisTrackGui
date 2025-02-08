@@ -1,7 +1,8 @@
 # Escludere cartelle
 classes/__pycache__/
 utils/__pycache__/
-vscode/
+.vscode/
+Projects/complete match/
 
 # Escludere i file .pyc e .pyo
 *.pyc
