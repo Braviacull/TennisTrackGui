@@ -25,7 +25,7 @@ IMPORTANT: use cmd, do not use PowerShell (I couldn't get conda to work on Power
 7) pip install PySide6
 8) pip install opencv-python
 9) pip install -r text_files/requirements.txt
-10) install vlc media player (make sure is the 64bit version)
+10) install vlc media player (make sure is the 64 bit version)
 
 # SIDE NOTES
 1) App Icon made by Ina Mella from www.flaticon.com
