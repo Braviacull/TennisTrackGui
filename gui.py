@@ -6,7 +6,7 @@ import threading
 import vlc
 
 from PySide6.QtWidgets import (
-    QMainWindow, QWidget, QVBoxLayout, QPushButton, QScrollArea, QHBoxLayout, 
+    QMainWindow, QWidget, QVBoxLayout, QPushButton, QScrollArea, QHBoxLayout, QGridLayout,  
     QSlider, QFileDialog, QLabel, QApplication, QSplitter, QInputDialog, QCheckBox, QMessageBox, 
     QMenu, QMenuBar
 )
@@ -15,16 +15,17 @@ from PySide6.QtCore import Qt, QThread, QTimer
 from functools import partial
 
 from costants import *
-from utils.video_operations import *
-from utils.obtain_directory import *
-from utils.play import *
+from utils.video_operations import (time_to_frame, write_video_generator_intervals, get_frame_rate, frame_to_time)
+from utils.obtain_directory import (obtain_project_dir, obtain_output_dir, obtain_base_name, obtain_input_dir)
+from utils.play import (play_scene, play_next_scene)
 from utils.linked_list import LinkedList
-from utils.utils import *
-from utils.tennis_point_system import *
+from utils.utils import (get_selected_scenes_data, get_macro_scene_correct_name, get_data_from_button, get_current_game, 
+                         deactivate_buttons, activate_buttons, get_current_set, remove_container_from_layout, clear_layout)
+from utils.tennis_point_system import (recalculate_match_state, assign_point, assign_point_tiebreak)
 from classes.scene_data_class import SceneData
 from typing import List
-from classes.filter_dialog_class import *
-from classes.set_point_window_class import *
+from classes.filter_dialog_class import FilterDialog
+from classes.set_point_window_class import SetPointWindow
 
 class ProcessingThread(QThread):
     def __init__(self, input_path, output_path, application):

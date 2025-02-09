@@ -1,7 +1,6 @@
 from scenedetect import open_video, SceneManager
 from scenedetect.stats_manager import StatsManager
 from scenedetect.detectors import ContentDetector
-from tqdm import tqdm
 from PySide6.QtWidgets import QPushButton
 from typing import List
 from classes.scene_data_class import SceneData
@@ -77,7 +76,8 @@ def get_custom_score (score1, score2):
     return score1 + score2 + 1
 
 def print_execution_time(start_time, end_time):
-    execution_time_in_seconds= end_time - start_time
+    execution_time_in_seconds = end_time - start_time
     execution_time_in_minutes = execution_time_in_seconds / 60
-    print(f"Execution time: {execution_time_in_seconds} seconds")
-    print(f"Execution time: {execution_time_in_minutes} minutes")
+    execution_time_in_seconds = round(execution_time_in_seconds, 2)
+    execution_time_in_minutes = round(execution_time_in_minutes, 2)
+    print(f"Execution time: {execution_time_in_seconds} seconds, {execution_time_in_minutes} minutes")

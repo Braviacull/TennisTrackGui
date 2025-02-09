@@ -4,7 +4,8 @@ import cv2
 import numpy as np
 from scipy.spatial import distance
 from tqdm import tqdm
-from utils.video_operations import read_video_generator, get_total_frames	
+from utils.video_operations import read_video_generator, get_total_frames
+import pandas as pd
 
 class BallDetector:
     def __init__(self, path_model=None, device='cuda'):
@@ -89,3 +90,15 @@ class BallDetector:
                 x = circles[0][0][0]*scale
                 y = circles[0][0][1]*scale
         return x, y
+    
+    def interpolate_ball_track(self, ball_track):
+        # convert the list into pandas dataframe
+        df_ball_track = pd.DataFrame(ball_track,columns=['x', 'y'])
+
+        # interpolate the missing values
+        df_ball_track = df_ball_track.interpolate()
+        df_ball_track = df_ball_track.bfill()
+
+        ball_track = list(df_ball_track.itertuples(index=False, name=None))
+
+        return ball_track

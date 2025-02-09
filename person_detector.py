@@ -1,7 +1,6 @@
 import cv2
 import torch
 from court_reference import CourtReference
-from scipy import signal
 import numpy as np
 from scipy.spatial import distance
 from tqdm import tqdm

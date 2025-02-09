@@ -2,7 +2,6 @@ import json
 import os
 import cv2
 from tqdm import tqdm
-from court_detection_net import CourtDetectorNet
 import numpy as np
 from court_reference import CourtReference
 from bounce_detector import BounceDetector
@@ -151,6 +150,7 @@ if __name__ == '__main__':
         # Ball detection
         ball_detector = BallDetector(args.path_ball_track_model, device)
         ball_track = ball_detector.infer_model(args.path_input_video)
+        ball_track = ball_detector.interpolate_ball_track(ball_track)
 
         # Bounce detection
         bounce_detector = BounceDetector(args.path_bounce_model)
