@@ -97,6 +97,8 @@ class MainWindow(QMainWindow):
         self.reload_project_action = QAction("Reload Project", self)
         self.reload_project_action.triggered.connect(self.reload_project)
         self.project_menu.addAction(self.reload_project_action)
+        self.buttons_to_activate.append(self.reload_project_action)
+        self.reload_project_action.setEnabled(False)
 
         self.save_project_action = QAction("Save Project", self)
         self.save_project_action.triggered.connect(self.save_project)

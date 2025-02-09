@@ -36,6 +36,7 @@ def drawing(input_video_path, output_video_path, bounces, ball_track, kps_court,
         trace: the length of ball trace
     """
 
+
     width_minimap = 166
     height_minimap = 350
 
@@ -47,8 +48,8 @@ def drawing(input_video_path, output_video_path, bounces, ball_track, kps_court,
     frame_iterator = iter(read_video_generator(input_video_path))
 
     with tqdm(total=total_frames, desc="Drawing", leave=True) as pbar:
+        court_img = get_court_img()
         for i in range(total_frames):
-            court_img = get_court_img()
 
             frame = next(frame_iterator)
             inv_mat = homography_matrices[i]
@@ -83,6 +84,7 @@ def drawing(input_video_path, output_video_path, bounces, ball_track, kps_court,
 
             # draw bounce in minimap
             if i in bounces and inv_mat is not None:
+                court_img = get_court_img()
                 ball_point = ball_track[i]
                 ball_point = np.array(ball_point, dtype=np.float32).reshape(1, 1, 2)
                 ball_point = cv2.perspectiveTransform(ball_point, inv_mat)
@@ -150,7 +152,7 @@ if __name__ == '__main__':
         # Ball detection
         ball_detector = BallDetector(args.path_ball_track_model, device)
         ball_track = ball_detector.infer_model(args.path_input_video)
-        ball_track = ball_detector.interpolate_ball_track(ball_track)
+        # ball_track = ball_detector.interpolate_ball_track(ball_track)
 
         # Bounce detection
         bounce_detector = BounceDetector(args.path_bounce_model)
