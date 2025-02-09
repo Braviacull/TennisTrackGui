@@ -290,6 +290,17 @@ class MainWindow(QMainWindow):
         else:
             return False
         
+    def ask_for_processing(self):
+        reply = QMessageBox.question(self, 'Process Video',
+                                     "Do you want to process the video after its creation?",
+                                     QMessageBox.Yes | QMessageBox.No,
+                                     QMessageBox.No)
+
+        if reply == QMessageBox.Yes:
+            return True
+        else:
+            return False
+        
     def ask_for_player(self):
         msg_box = QMessageBox(self)
         msg_box.setWindowTitle("Player Selection")
@@ -864,6 +875,7 @@ class MainWindow(QMainWindow):
             return
         project_name, ok = QInputDialog.getText(self, "New Project", "Enter project name:")
         project_path = os.path.join("Projects", project_name)
+        processing = self.ask_for_processing()
         if os.path.isdir(project_path) and ok:
             print("Project already exists, CHOOSE ANOTHER NAME FOR YOUR PROJECT")
             return
@@ -887,6 +899,8 @@ class MainWindow(QMainWindow):
                 shutil.copy(input_video_path, obtain_input_dir(self))
                 self.pre_processing()
                 self.load_project(self.project_path)
+                if processing:
+                    self.start_processing_thread()
 
     def load_project(self, project_path=None):
         if not project_path: # if the load project button is clicked
