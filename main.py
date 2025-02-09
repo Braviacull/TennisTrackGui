@@ -47,69 +47,70 @@ def drawing(input_video_path, output_video_path, bounces, ball_track, kps_court,
     total_frames = get_total_frames(input_video_path)
     frame_iterator = iter(read_video_generator(input_video_path))
 
-    print('drawing')
-    for i in tqdm(range(total_frames)):
-        court_img = get_court_img()
+    with tqdm(total=total_frames, desc="Drawing", leave=True) as pbar:
+        for i in range(total_frames):
+            court_img = get_court_img()
 
-        frame = next(frame_iterator)
-        inv_mat = homography_matrices[i]
+            frame = next(frame_iterator)
+            inv_mat = homography_matrices[i]
 
-        # draw ball trajectory
-        if ball_track[i][0]:
-            if draw_trace:
-                for j in range(0, trace):
-                    if i-j >= 0:
-                        if ball_track[i-j][0]:
-                            draw_x = int(ball_track[i-j][0])
-                            draw_y = int(ball_track[i-j][1])
-                            frame = cv2.circle(frame, (draw_x, draw_y),
-                            radius=3, color=(0, 255, 0), thickness=2)
-            else:    
-                frame = cv2.circle(frame , (int(ball_track[i][0]), int(ball_track[i][1])), radius=5,
-                                        color=(0, 255, 0), thickness=2)
-                frame = cv2.putText(frame, 'ball', 
-                        org=(int(ball_track[i][0]) + 8, int(ball_track[i][1]) + 8),
-                        fontFace=cv2.FONT_HERSHEY_SIMPLEX,
-                        fontScale=0.8,
-                        thickness=2,
-                        color=(0, 255, 0))
+            # draw ball trajectory
+            if ball_track[i][0]:
+                if draw_trace:
+                    for j in range(0, trace):
+                        if i-j >= 0:
+                            if ball_track[i-j][0]:
+                                draw_x = int(ball_track[i-j][0])
+                                draw_y = int(ball_track[i-j][1])
+                                frame = cv2.circle(frame, (draw_x, draw_y),
+                                radius=3, color=(0, 255, 0), thickness=2)
+                else:    
+                    frame = cv2.circle(frame , (int(ball_track[i][0]), int(ball_track[i][1])), radius=5,
+                                            color=(0, 255, 0), thickness=2)
+                    frame = cv2.putText(frame, 'ball', 
+                            org=(int(ball_track[i][0]) + 8, int(ball_track[i][1]) + 8),
+                            fontFace=cv2.FONT_HERSHEY_SIMPLEX,
+                            fontScale=0.8,
+                            thickness=2,
+                            color=(0, 255, 0))
 
-        # draw court keypoints
-        if kps_court[i] is not None:
-            for j in range(len(kps_court[i])):
-                frame = cv2.circle(frame, (int(kps_court[i][j][0, 0]), int(kps_court[i][j][0, 1])),
-                                    radius=0, color=(0, 0, 255), thickness=10)
+            # draw court keypoints
+            if kps_court[i] is not None:
+                for j in range(len(kps_court[i])):
+                    frame = cv2.circle(frame, (int(kps_court[i][j][0, 0]), int(kps_court[i][j][0, 1])),
+                                        radius=0, color=(0, 0, 255), thickness=10)
 
-        height, width, _ = frame.shape
+            height, width, _ = frame.shape
 
-        # draw bounce in minimap
-        if i in bounces and inv_mat is not None:
-            ball_point = ball_track[i]
-            ball_point = np.array(ball_point, dtype=np.float32).reshape(1, 1, 2)
-            ball_point = cv2.perspectiveTransform(ball_point, inv_mat)
-            court_img = cv2.circle(court_img, (int(ball_point[0, 0, 0]), int(ball_point[0, 0, 1])),
-                                                radius=0, color=(0, 255, 255), thickness=50)
+            # draw bounce in minimap
+            if i in bounces and inv_mat is not None:
+                ball_point = ball_track[i]
+                ball_point = np.array(ball_point, dtype=np.float32).reshape(1, 1, 2)
+                ball_point = cv2.perspectiveTransform(ball_point, inv_mat)
+                court_img = cv2.circle(court_img, (int(ball_point[0, 0, 0]), int(ball_point[0, 0, 1])),
+                                                    radius=0, color=(0, 255, 255), thickness=50)
 
-        minimap = court_img.copy()
+            minimap = court_img.copy()
 
-        # draw persons
-        persons = persons_top[i] + persons_bottom[i]                    
-        for j, person in enumerate(persons):
-            if len(person[0]) > 0:
-                person_bbox = list(person[0])
-                frame = cv2.rectangle(frame, (int(person_bbox[0]), int(person_bbox[1])),
-                                        (int(person_bbox[2]), int(person_bbox[3])), [255, 0, 0], 2)
+            # draw persons
+            persons = persons_top[i] + persons_bottom[i]                    
+            for j, person in enumerate(persons):
+                if len(person[0]) > 0:
+                    person_bbox = list(person[0])
+                    frame = cv2.rectangle(frame, (int(person_bbox[0]), int(person_bbox[1])),
+                                            (int(person_bbox[2]), int(person_bbox[3])), [255, 0, 0], 2)
 
-                # transmit person point to minimap
-                person_point = list(person[1])
-                person_point = np.array(person_point, dtype=np.float32).reshape(1, 1, 2)
-                person_point = cv2.perspectiveTransform(person_point, inv_mat)
-                minimap = cv2.circle(minimap, (int(person_point[0, 0, 0]), int(person_point[0, 0, 1])),
-                                                    radius=0, color=(255, 0, 0), thickness=80)
+                    # transmit person point to minimap
+                    person_point = list(person[1])
+                    person_point = np.array(person_point, dtype=np.float32).reshape(1, 1, 2)
+                    person_point = cv2.perspectiveTransform(person_point, inv_mat)
+                    minimap = cv2.circle(minimap, (int(person_point[0, 0, 0]), int(person_point[0, 0, 1])),
+                                                        radius=0, color=(255, 0, 0), thickness=80)
 
-        minimap = cv2.resize(minimap, (width_minimap, height_minimap))
-        frame[30:(30 + height_minimap), (width - 30 - width_minimap):(width - 30), :] = minimap
-        out.write(frame)
+            minimap = cv2.resize(minimap, (width_minimap, height_minimap))
+            frame[30:(30 + height_minimap), (width - 30 - width_minimap):(width - 30), :] = minimap
+            out.write(frame)
+            pbar.update(1)
 
     out.release()
 
@@ -143,15 +144,15 @@ if __name__ == '__main__':
         homography_matrices = [np.array(matrix) for matrix in homography_matrices]
         kps_court = [np.array(kps) for kps in kps_court]
 
-        print('person detection')
+        # Person detection
         person_detector = PersonDetector()
         persons_top, persons_bottom = person_detector.track_players(args.path_input_video, homography_matrices, filter_players=False)
 
-        print('ball detection')
+        # Ball detection
         ball_detector = BallDetector(args.path_ball_track_model, device)
         ball_track = ball_detector.infer_model(args.path_input_video)
 
-        # bounce detection
+        # Bounce detection
         bounce_detector = BounceDetector(args.path_bounce_model)
         x_ball = [x[0] for x in ball_track]
         y_ball = [x[1] for x in ball_track]

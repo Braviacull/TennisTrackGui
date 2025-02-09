@@ -41,14 +41,16 @@ def write_video_generator_intervals_with_padding(fps, scenes, path_input_video, 
     height, width = get_height_width(path_input_video)
     out = cv2.VideoWriter(path_output_video, cv2.VideoWriter_fourcc(*'mp4v'), fps, (width, height))
 
-    for scene in scenes:
+    for num_scene, scene in enumerate(scenes):
         start_frame = scene[0]
         end_frame = scene[1]
         total_frames = end_frame - start_frame
         last_frame = None
-        for num_frame, frame in enumerate(tqdm(read_video_generator_interval(path_input_video, start_frame, end_frame), total = total_frames)):
-            out.write(frame)
-            last_frame = frame
+        with tqdm(total=total_frames, desc=f"Writing scene {num_scene+1}", leave=True) as pbar:
+            for frame in read_video_generator_interval(path_input_video, start_frame, end_frame):
+                out.write(frame)
+                last_frame = frame
+                pbar.update(1)
     for i in range(fps): # padding
         out.write(last_frame)
 

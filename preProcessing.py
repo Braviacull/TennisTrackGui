@@ -66,7 +66,7 @@ if __name__ == '__main__':
     print ("Detecting scenes\n")
     scenes = scene_detect(args.path_input_video)
 
-    print('Court detection')
+    # Court detection
     court_detector = CourtDetectorNet(args.path_court_model, device)
     homography_matrices, kps_court = court_detector.infer_model(args.path_input_video)
 

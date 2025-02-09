@@ -80,13 +80,15 @@ class PersonDetector():
         frame_iterator = iter(read_video_generator(video_path))
 
         min_len = min(total_frames, len(matrix_all))
-        for num_frame in tqdm(range(min_len)):
-            img = next(frame_iterator)
-            if matrix_all[num_frame] is not None:
-                inv_matrix = matrix_all[num_frame]
-                person_top, person_bottom = self.detect_top_and_bottom_players(img, inv_matrix, filter_players)
-            else:
-                person_top, person_bottom = [], []
-            persons_top.append(person_top)
-            persons_bottom.append(person_bottom)
+        with tqdm(total=total_frames, desc="Person detection", leave=True) as pbar:
+            for num_frame in range(min_len):
+                img = next(frame_iterator)
+                if matrix_all[num_frame] is not None:
+                    inv_matrix = matrix_all[num_frame]
+                    person_top, person_bottom = self.detect_top_and_bottom_players(img, inv_matrix, filter_players)
+                else:
+                    person_top, person_bottom = [], []
+                persons_top.append(person_top)
+                persons_bottom.append(person_bottom)
+                pbar.update(1)
         return persons_top, persons_bottom

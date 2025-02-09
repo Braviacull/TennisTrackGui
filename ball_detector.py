@@ -31,29 +31,32 @@ class BallDetector:
 
         img_preprev = None
         img_prev = None
-        for num_frame, img in enumerate(tqdm(read_video_generator(video_path), total = total_frames)):
-            if num_frame == 0:
-                img_preprev = img
-            elif num_frame == 1:
-                img_prev = img
-            elif num_frame > 1:
-                img = cv2.resize(img, (self.width, self.height))
-                img_prev = cv2.resize(img_prev, (self.width, self.height))
-                img_preprev = cv2.resize(img_preprev, (self.width, self.height))
-                imgs = np.concatenate((img, img_prev, img_preprev), axis=2)
-                imgs = imgs.astype(np.float32)/255.0
-                imgs = np.rollaxis(imgs, 2, 0)
-                inp = np.expand_dims(imgs, axis=0)
+        with tqdm(total=total_frames, desc="Ball detection", leave=True) as pbar:
+            for num_frame, img in enumerate(read_video_generator(video_path)):
+                if num_frame == 0:
+                    img_preprev = img
+                elif num_frame == 1:
+                    img_prev = img
+                elif num_frame > 1:
+                    img = cv2.resize(img, (self.width, self.height))
+                    img_prev = cv2.resize(img_prev, (self.width, self.height))
+                    img_preprev = cv2.resize(img_preprev, (self.width, self.height))
+                    imgs = np.concatenate((img, img_prev, img_preprev), axis=2)
+                    imgs = imgs.astype(np.float32)/255.0
+                    imgs = np.rollaxis(imgs, 2, 0)
+                    inp = np.expand_dims(imgs, axis=0)
 
-                out = self.model(torch.from_numpy(inp).float().to(self.device))
-                output = out.argmax(dim=1).detach().cpu().numpy()
-                x_pred, y_pred = self.postprocess(output, prev_pred)
-                prev_pred = [x_pred, y_pred]
-                ball_track.append((x_pred, y_pred))
+                    out = self.model(torch.from_numpy(inp).float().to(self.device))
+                    output = out.argmax(dim=1).detach().cpu().numpy()
+                    x_pred, y_pred = self.postprocess(output, prev_pred)
+                    prev_pred = [x_pred, y_pred]
+                    ball_track.append((x_pred, y_pred))
 
-                # Update frames
-                img_preprev = img_prev
-                img_prev = img
+                    # Update frames
+                    img_preprev = img_prev
+                    img_prev = img
+
+                    pbar.update(1)
         return ball_track
 
     def postprocess(self, feature_map, prev_pred, scale=2, max_dist=80):

@@ -875,7 +875,7 @@ class MainWindow(QMainWindow):
             return
         project_name, ok = QInputDialog.getText(self, "New Project", "Enter project name:")
         project_path = os.path.join("Projects", project_name)
-        processing = self.ask_for_processing()
+        if ok: processing = self.ask_for_processing()
         if os.path.isdir(project_path) and ok:
             print("Project already exists, CHOOSE ANOTHER NAME FOR YOUR PROJECT")
             return
@@ -1015,4 +1015,6 @@ if __name__ == "__main__":
     app.setWindowIcon(QIcon("icons/icon.png"))
     window = MainWindow()
     window.show()
+    window.raise_()  # Porta la finestra in primo piano
+    window.activateWindow()  # Attiva la finestra
     app.exec()
