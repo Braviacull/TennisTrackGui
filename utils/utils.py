@@ -1,7 +1,7 @@
-from scenedetect.video_manager import VideoManager
-from scenedetect.scene_manager import SceneManager
+from scenedetect import open_video, SceneManager
 from scenedetect.stats_manager import StatsManager
 from scenedetect.detectors import ContentDetector
+from tqdm import tqdm
 from PySide6.QtWidgets import QPushButton
 from typing import List
 from classes.scene_data_class import SceneData
@@ -10,20 +10,20 @@ def scene_detect(path_video):
     """
     Split video to disjoint fragments based on color histograms
     """
-    video_manager = VideoManager([path_video])
+    video = open_video(path_video)
     stats_manager = StatsManager()
     scene_manager = SceneManager(stats_manager)
     scene_manager.add_detector(ContentDetector())
-    base_timecode = video_manager.get_base_timecode()
 
-    video_manager.set_downscale_factor()
-    video_manager.start()
-    scene_manager.detect_scenes(frame_source=video_manager)
-    scene_list = scene_manager.get_scene_list(base_timecode)
+    # Perform scene detection
+    scene_manager.detect_scenes(video)
 
-    if scene_list == []:
-        scene_list = [(video_manager.get_base_timecode(), video_manager.get_current_timecode())]
-    scenes = [[x[0].frame_num, x[1].frame_num]for x in scene_list]    
+    # Get list of detected scenes
+    scene_list = scene_manager.get_scene_list()
+
+    if not scene_list:
+        scene_list = [(video.base_timecode, video.duration)]
+    scenes = [[scene[0].get_frames(), scene[1].get_frames()] for scene in scene_list]
     return scenes
 
 def get_selected_scenes_data(self) -> List[SceneData]:
@@ -75,3 +75,9 @@ def get_current_set (self):
 
 def get_custom_score (score1, score2):
     return score1 + score2 + 1
+
+def print_execution_time(start_time, end_time):
+    execution_time_in_seconds= end_time - start_time
+    execution_time_in_minutes = execution_time_in_seconds / 60
+    print(f"Execution time: {execution_time_in_seconds} seconds")
+    print(f"Execution time: {execution_time_in_minutes} minutes")

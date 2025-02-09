@@ -1,8 +1,8 @@
 from court_detection_net import CourtDetectorNet
-from utils.utils import scene_detect
+from utils.utils import scene_detect, print_execution_time
 from utils.obtain_directory import obtain_jsons_dir
 import argparse
-from utils.video_operations import get_frame_rate, get_total_frames, write_video_generator_intervals
+from utils.video_operations import get_frame_rate, get_total_frames, write_video_generator_intervals_with_padding
 import torch
 import json
 import numpy as np
@@ -95,9 +95,6 @@ if __name__ == '__main__':
     with open(os.path.join(jsons_dir, "kps_court.json"), 'w') as json_file:
         json.dump(kps_court_list, json_file)
 
-    write_video_generator_intervals(fps, selected_scenes, args.path_input_video, args.path_output_video)
+    write_video_generator_intervals_with_padding(fps, selected_scenes, args.path_input_video, args.path_output_video)
 
-    execution_time_in_seconds= time.time() - start_time
-    execution_time_in_minutes = execution_time_in_seconds / 60
-    print(f"Execution time: {execution_time_in_seconds} seconds")
-    print(f"Execution time: {execution_time_in_minutes} minutes")
+    print_execution_time(start_time, time.time())

@@ -8,12 +8,12 @@ from court_reference import CourtReference
 from bounce_detector import BounceDetector
 from person_detector import PersonDetector
 from ball_detector import BallDetector
-from utils.utils import scene_detect
 import argparse
 import torch
 from utils.video_operations import get_frame_rate, get_height_width, read_video_generator, get_total_frames
 from utils.obtain_directory import obtain_jsons_dir
 import time
+from utils.utils import print_execution_time
 
 def get_court_img():
     court_reference = CourtReference()
@@ -42,7 +42,7 @@ def drawing(input_video_path, output_video_path, bounces, ball_track, kps_court,
 
     fps = get_frame_rate(input_video_path)
     height, width = get_height_width(input_video_path)
-    out = cv2.VideoWriter(output_video_path, cv2.VideoWriter_fourcc(*'DIVX'), fps, (width, height))
+    out = cv2.VideoWriter(output_video_path, cv2.VideoWriter_fourcc(*'mp4v'), fps, (width, height))
 
     total_frames = get_total_frames(input_video_path)
     frame_iterator = iter(read_video_generator(input_video_path))
@@ -159,9 +159,6 @@ if __name__ == '__main__':
 
         drawing(args.path_input_video, args.path_output_video, bounces, ball_track, kps_court, persons_top, persons_bottom, draw_trace=True)
 
-        execution_time_in_seconds= time.time() - start_time
-        execution_time_in_minutes = execution_time_in_seconds / 60
-        print(f"Execution time: {execution_time_in_seconds} seconds")
-        print(f"Execution time: {execution_time_in_minutes} minutes")
+        print_execution_time(start_time, time.time())
     else:
         print ("Error: homography_matrices.json or kps_court.json not found")
