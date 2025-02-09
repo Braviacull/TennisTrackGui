@@ -41,7 +41,7 @@ class ProcessingThread(QThread):
         bounce_model_path = "ctb_regr_bounce.cbm"
 
         command = [
-            "python", "main.py",
+            "python", "processing.py",
             "--path_ball_track_model", ball_model_path,
             "--path_court_model", court_model_path,
             "--path_bounce_model", bounce_model_path,
@@ -92,6 +92,10 @@ class MainWindow(QMainWindow):
         self.load_project_action = QAction("Load Project", self)
         self.load_project_action.triggered.connect(self.load_project)
         self.project_menu.addAction(self.load_project_action)
+
+        self.reload_project_action = QAction("Reload Project", self)
+        self.reload_project_action.triggered.connect(self.reload_project)
+        self.project_menu.addAction(self.reload_project_action)
 
         self.save_project_action = QAction("Save Project", self)
         self.save_project_action.triggered.connect(self.save_project)
@@ -641,34 +645,14 @@ class MainWindow(QMainWindow):
         output_video_path = os.path.join(project_dir, output_name)
 
         selected_scenes_data = get_selected_scenes_data(self)
-        frames = []
+        scenes = []
         for data in selected_scenes_data:
-            current_node = data.linked_list.head
-            while current_node:
-                frames.extend(range(current_node.data[0], current_node.data[1] + 1))
-                current_node = current_node.next
+            scenes.extend(data.get_scenes())
 
-        # Open the original video
-        cap = cv2.VideoCapture(input_video_path)
-        if not cap.isOpened():
-            print("Error: Could not open video.")
-            return
-        
-        # Read the selected frames
-        imgs_res = []
-        for frame_number in frames:
-            cap.set(cv2.CAP_PROP_POS_FRAMES, frame_number)
-            ret, frame = cap.read()
-            if ret:
-                imgs_res.append(frame)
-            else:
-                print(f"Error: Could not read frame {frame_number}.")
+        print (scenes)
 
-        # Release the video capture object
-        cap.release()
+        write_video_generator_intervals(self.frame_rate, scenes, input_video_path, output_video_path)
 
-        # Write the frames to the new video using the write function
-        write(imgs_res, self.frame_rate, output_video_path)
         print(f"Video saved to {output_video_path}")
 
     def initiate_set_points(self):
@@ -901,6 +885,9 @@ class MainWindow(QMainWindow):
                 self.load_project(self.project_path)
                 if processing:
                     self.start_processing_thread()
+
+    def reload_project(self):
+        self.load_project(self.project_path)
 
     def load_project(self, project_path=None):
         if not project_path: # if the load project button is clicked

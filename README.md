@@ -3,14 +3,11 @@
 # Instructions to create and set up an environment to use the program on Windows:
 
 <!-- 
-IMPORTANT: If you have trouble installing catboost, you probably need to install Rust first.
-Alternatively, you can install an older version of Python (3.12.7 and 3.12.8 should be fine).
-
-IMPORTANT: if at any point something doesn't work, restarting the system can be a solution.
+IMPORTANT: If you have trouble installing catboost, you probably need to install Rust first. Alternatively, you can install an older version of Python (3.12.7 and 3.12.8 should be fine).
 
 IMPORTANT: always use pip to install packages.
 
-IMPORTANT: use cmd, do not use PowerShell (I couldn't get conda to work on PowerShell for some reason).
+IMPORTANT: On Windows, use cmd (I couldn't get conda to work on PowerShell for some reason).
 
 IMPORTANT: with python 3.10 I had problems with person detection
 

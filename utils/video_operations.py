@@ -37,9 +37,9 @@ def read_video_generator_interval(video_path, start_frame, end_frame):
             break
     cap.release()
 
-def write_video_generator_intervals_with_padding(fps, scenes, path_input_video, path_output_video):
-    height, width = get_height_width(path_input_video)
-    out = cv2.VideoWriter(path_output_video, cv2.VideoWriter_fourcc(*'mp4v'), fps, (width, height))
+def write_video_generator_intervals(fps, scenes, input_video_path, output_video_path, padding = False):
+    height, width = get_height_width(input_video_path)
+    out = cv2.VideoWriter(output_video_path, cv2.VideoWriter_fourcc(*'mp4v'), fps, (width, height))
 
     for num_scene, scene in enumerate(scenes):
         start_frame = scene[0]
@@ -47,12 +47,13 @@ def write_video_generator_intervals_with_padding(fps, scenes, path_input_video, 
         total_frames = end_frame - start_frame
         last_frame = None
         with tqdm(total=total_frames, desc=f"Writing scene {num_scene+1}", leave=True) as pbar:
-            for frame in read_video_generator_interval(path_input_video, start_frame, end_frame):
+            for frame in read_video_generator_interval(input_video_path, start_frame, end_frame):
                 out.write(frame)
                 last_frame = frame
                 pbar.update(1)
-    for i in range(fps): # padding
-        out.write(last_frame)
+    if padding:
+        for i in range(fps): # padding
+            out.write(last_frame)
 
     out.release()
 

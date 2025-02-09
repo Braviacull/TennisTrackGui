@@ -12,3 +12,11 @@ class SceneData:
         return (f"SceneData(linked_list={self.linked_list}, container_widget={self.container_widget}, "
                 f"checked={self.checked}, point_winner={self.point_winner}, game={self.game}, "
                 f"set={self.set}, tiebreak={self.tiebreak})")
+    
+    def get_scenes(self):
+        scenes = []
+        head = self.linked_list.head
+        while head is not None:
+            scenes.append([head.data[0], head.data[1]])
+            head = head.next
+        return scenes
