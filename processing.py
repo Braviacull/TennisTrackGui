@@ -75,7 +75,7 @@ def drawing(input_video_path, output_video_path, bounces, ball_track, kps_court,
                             color=(0, 255, 0))
 
             # draw court keypoints
-            if kps_court[i] is not None:
+            if str(kps_court[i]) != 'None':
                 for j in range(len(kps_court[i])):
                     frame = cv2.circle(frame, (int(kps_court[i][j][0, 0]), int(kps_court[i][j][0, 1])),
                                         radius=0, color=(0, 0, 255), thickness=10)
@@ -152,7 +152,7 @@ if __name__ == '__main__':
         # Ball detection
         ball_detector = BallDetector(args.path_ball_track_model, device)
         ball_track = ball_detector.infer_model(args.path_input_video)
-        # ball_track = ball_detector.interpolate_ball_track(ball_track)
+        ball_track = ball_detector.interpolate_ball_track(ball_track)
 
         # Bounce detection
         bounce_detector = BounceDetector(args.path_bounce_model)

@@ -82,7 +82,7 @@ class PersonDetector():
         with tqdm(total=total_frames, desc="Person detection", leave=True) as pbar:
             for num_frame in range(min_len):
                 img = next(frame_iterator)
-                if matrix_all[num_frame] is not None:
+                if str(matrix_all[num_frame]) != 'None':
                     inv_matrix = matrix_all[num_frame]
                     person_top, person_bottom = self.detect_top_and_bottom_players(img, inv_matrix, filter_players)
                 else:
