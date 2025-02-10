@@ -15,10 +15,10 @@ IMPORTANT: with python 3.10 I had problems with person detection
 -->
 
 1) Install conda (or miniconda). We will use it only to create and activate the environment.
-2) conda create --name tennis or any other name you want to give to your environment.
-3) Run conda config --set auto_update_conda False
-4) conda activate tennis or any other name chosen in the previous step.
-5) conda install python=3.12.8 or any other version you prefer
+2) Run conda create --name tennis or any other name you want to give to your environment.
+3) Run conda activate tennis or any other name chosen in the previous step.
+4) Run conda config --set auto_update_conda False
+5) Run conda install python=3.12.8 or any other version you prefer
 6) Run python --version
 7) * Update NVIDIA drivers (preferably studio version).
 8) * Install compatible CUDA Toolkit and PyTorch (check the PyTorch website).

@@ -83,7 +83,7 @@ def drawing(input_video_path, output_video_path, bounces, ball_track, kps_court,
             height, width, _ = frame.shape
 
             # draw bounce in minimap
-            if i in bounces and inv_mat is not None:
+            if i in bounces and str(inv_mat) != 'None':
                 court_img = get_court_img()
                 ball_point = ball_track[i]
                 ball_point = np.array(ball_point, dtype=np.float32).reshape(1, 1, 2)
