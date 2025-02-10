@@ -885,9 +885,10 @@ class MainWindow(QMainWindow):
                 self.base_name = os.path.basename(input_video_path)
                 shutil.copy(input_video_path, obtain_input_dir(self))
                 self.pre_processing()
-                self.load_project(self.project_path)
                 if processing:
                     self.start_processing_thread()
+                else:
+                    self.load_project(self.project_path)
 
     def reload_project(self):
         self.load_project(self.project_path)

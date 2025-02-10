@@ -91,12 +91,12 @@ class BallDetector:
                 y = circles[0][0][1]*scale
         return x, y
     
-    def interpolate_ball_track(self, ball_track):
+    def interpolate_ball_track(self, ball_track, max_gap=10):
         # convert the list into pandas dataframe
-        df_ball_track = pd.DataFrame(ball_track,columns=['x', 'y'])
+        df_ball_track = pd.DataFrame(ball_track, columns=['x', 'y'])
 
-        # interpolate the missing values
-        df_ball_track = df_ball_track.interpolate()
+        # interpolate the missing values with a limit on the maximum gap
+        df_ball_track = df_ball_track.interpolate(limit=max_gap)
         df_ball_track = df_ball_track.bfill()
 
         ball_track = list(df_ball_track.itertuples(index=False, name=None))

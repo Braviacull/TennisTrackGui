@@ -59,7 +59,7 @@ def drawing(input_video_path, output_video_path, bounces, ball_track, kps_court,
                 if draw_trace:
                     for j in range(0, trace):
                         if i-j >= 0:
-                            if ball_track[i-j][0]:
+                            if ball_track[i-j][0] and not np.isnan(ball_track[i-j][0]):
                                 draw_x = int(ball_track[i-j][0])
                                 draw_y = int(ball_track[i-j][1])
                                 frame = cv2.circle(frame, (draw_x, draw_y),
