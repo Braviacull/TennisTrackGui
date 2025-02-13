@@ -55,7 +55,7 @@ def drawing(input_video_path, output_video_path, bounces, ball_track, kps_court,
             inv_mat = homography_matrices[i]
 
             # draw ball trajectory
-            if ball_track[i][0]:
+            if ball_track and ball_track[i][0]:
                 if draw_trace:
                     for j in range(0, trace):
                         if i-j >= 0:
@@ -83,7 +83,7 @@ def drawing(input_video_path, output_video_path, bounces, ball_track, kps_court,
             height, width, _ = frame.shape
 
             # draw bounce in minimap
-            if i in bounces and str(inv_mat) != 'None':
+            if bounces and i in bounces and str(inv_mat) != 'None':
                 court_img = get_court_img()
                 ball_point = ball_track[i]
                 ball_point = np.array(ball_point, dtype=np.float32).reshape(1, 1, 2)
@@ -150,15 +150,18 @@ if __name__ == '__main__':
         persons_top, persons_bottom = person_detector.track_players(args.path_input_video, homography_matrices, filter_players=False)
 
         # Ball detection
-        ball_detector = BallDetector(args.path_ball_track_model, device)
-        ball_track = ball_detector.infer_model(args.path_input_video)
-        ball_track = ball_detector.interpolate_ball_track(ball_track)
+        bounces = []
+        ball_track = []
+        if args.path_ball_track_model != "None":
+            ball_detector = BallDetector(args.path_ball_track_model, device)
+            ball_track = ball_detector.infer_model(args.path_input_video)
+            # ball_track = ball_detector.interpolate_ball_track(ball_track)
 
-        # Bounce detection
-        bounce_detector = BounceDetector(args.path_bounce_model)
-        x_ball = [x[0] for x in ball_track]
-        y_ball = [x[1] for x in ball_track]
-        bounces = bounce_detector.predict(x_ball, y_ball)
+            # Bounce detection
+            bounce_detector = BounceDetector(args.path_bounce_model)
+            x_ball = [x[0] for x in ball_track]
+            y_ball = [x[1] for x in ball_track]
+            bounces = bounce_detector.predict(x_ball, y_ball)
 
         drawing(args.path_input_video, args.path_output_video, bounces, ball_track, kps_court, persons_top, persons_bottom, draw_trace=True)
 

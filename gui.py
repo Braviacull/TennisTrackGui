@@ -37,7 +37,12 @@ class ProcessingThread(QThread):
     def run(self):
         self.application.setWindowTitle("PROCESSING. THIS MAY TAKE A WHILE, YOU CAN CONTINUE USING THE APPLICATION...")
 
-        ball_model_path = "model_best.pt"
+        if self.application.ball_detection_bool:
+            ball_model_path = "model_best.pt"
+        else:
+            ball_model_path = "None"
+
+        self.application.ball_detection_bool = None
         court_model_path = "model_tennis_court_det.pt"
         bounce_model_path = "ctb_regr_bounce.cbm"
 
@@ -264,7 +269,7 @@ class MainWindow(QMainWindow):
 
         # Set a timer to check the video time
         self.timer = QTimer(self)
-        self.timer.timeout.connect(self.check_time)
+        self.ball_detection_bool = None
 
         # Indicates if every scene is a point or if the scenes needs to be modified by the user
         self.set_point_window = SetPointWindow(self)
@@ -277,9 +282,6 @@ class MainWindow(QMainWindow):
         self.max_sets = 2 # the maximum number of sets
         self.tiebreak = False # if True, the current set is a tiebreak
         self.winner = None # the winner of the match
-
-        # Gestione Threads
-        self.processing_threads = []
 
     def ask_for_save(self):
         if not self.modified:
@@ -308,6 +310,17 @@ class MainWindow(QMainWindow):
         else:
             return False
         
+    def ask_for_ball_detection(self):
+        reply = QMessageBox.question(self, 'Ball Detection',
+                                     "Do you want to include Ball Detection?",
+                                     QMessageBox.Yes | QMessageBox.No,
+                                     QMessageBox.No)
+
+        if reply == QMessageBox.Yes:
+            return True
+        else:
+            return False
+       
     def ask_for_player(self):
         msg_box = QMessageBox(self)
         msg_box.setWindowTitle("Player Selection")
@@ -850,6 +863,8 @@ class MainWindow(QMainWindow):
         self.setWindowTitle("TennisTrack")
 
     def start_processing_thread(self):
+        if self.ball_detection_bool is None:
+            self.ball_detection_bool = self.ask_for_ball_detection()
         input_path = os.path.join(obtain_output_dir(self), PRE_PROCESSED)
         output_path = os.path.join(obtain_output_dir(self), PROCESSED)
         processing_thread = ProcessingThread(input_path, output_path, self)
@@ -863,6 +878,7 @@ class MainWindow(QMainWindow):
         project_name, ok = QInputDialog.getText(self, "New Project", "Enter project name:")
         project_path = os.path.join("Projects", project_name)
         if ok: processing = self.ask_for_processing()
+        if processing: self.ball_detection_bool = self.ask_for_ball_detection()
         if os.path.isdir(project_path) and ok:
             print("Project already exists, CHOOSE ANOTHER NAME FOR YOUR PROJECT")
             return
@@ -975,6 +991,8 @@ class MainWindow(QMainWindow):
                 self.tiebreak = True
 
             self.save_project()
+
+            self.ball_detection_bool = None
 
             self.play_and_pause_button.setEnabled(False)
             self.play_and_pause_button.setText("Play/Pause")
