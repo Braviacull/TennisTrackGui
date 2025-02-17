@@ -269,7 +269,7 @@ class MainWindow(QMainWindow):
 
         # Set a timer to check the video time
         self.timer = QTimer(self)
-        self.ball_detection_bool = None
+        self.timer.timeout.connect(self.check_time)
 
         # Indicates if every scene is a point or if the scenes needs to be modified by the user
         self.set_point_window = SetPointWindow(self)
@@ -282,6 +282,9 @@ class MainWindow(QMainWindow):
         self.max_sets = 2 # the maximum number of sets
         self.tiebreak = False # if True, the current set is a tiebreak
         self.winner = None # the winner of the match
+
+        # Decision variables
+        self.ball_detection_bool = None
 
     def ask_for_save(self):
         if not self.modified:
