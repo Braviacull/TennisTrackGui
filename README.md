@@ -27,3 +27,7 @@ IMPORTANT: with python 3.10 I had problems with person detection
 
 # SIDE NOTES
 1) App Icon made by Ina Mella from www.flaticon.com
+
+
+<!-- per aggiornare la cache di vlc -->
+<!-- "C:\Program Files\VideoLAN\VLC\vlc-cache-gen.exe" "C:\Program Files\VideoLAN\VLC\plugins" -->

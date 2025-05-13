@@ -570,7 +570,7 @@ class MainWindow(QMainWindow):
     def ungroup (self):
         selected_scenes_data = get_selected_scenes_data(self)
         if len(selected_scenes_data) < 1:
-            print ("Select at least one scene")
+            print ("Select one scene")
             return
         for data in selected_scenes_data:
             position = self.scene_data.index(data)
@@ -618,29 +618,31 @@ class MainWindow(QMainWindow):
         self.delete_selected()
 
     def split(self):
-        if self.mediaplayer.is_playing(): # pause the video if necessary
-            self.play_and_pause()
+        # if self.mediaplayer.is_playing(): # pause the video if necessary
+        #     self.play_and_pause()
 
-        start_frame = self.current_node.data[0]
-        current_frame = time_to_frame(self.mediaplayer.get_time(), self.frame_rate)
-        end_frame = self.current_node.data[1]
+        # start_frame = self.current_node.data[0]
+        # current_frame = time_to_frame(self.mediaplayer.get_time(), self.frame_rate)
+        # end_frame = self.current_node.data[1]
 
-        self.current_node.set_data([start_frame, current_frame])
-        second_scene = [current_frame + 1, end_frame]
-        self.current_data.linked_list.insert_after_node(self.current_node, second_scene)
+        # self.current_node.set_data([start_frame, current_frame])
+        # second_scene = [current_frame + 1, end_frame]
+        # self.current_data.linked_list.insert_after_node(self.current_node, second_scene)
 
-        button_text = get_macro_scene_correct_name(self.current_data.linked_list.head)
+        # button_text = get_macro_scene_correct_name(self.current_data.linked_list.head)
 
-        button = self.current_data.container_widget.findChild(QPushButton)
-        button.setText(button_text)
+        # button = self.current_data.container_widget.findChild(QPushButton)
+        # button.setText(button_text)
 
-        self.deselect_all()
-        self.current_data.checked = True
+        # self.deselect_all()
+        # self.current_data.checked = True
+        # self.ungroup()
+        # self.delete_selected()
+
+        # self.play_and_pause_button.setEnabled(False)
+        # self.play_and_pause_button.setText("Play/Pause")        
         self.ungroup()
         self.delete_selected()
-
-        self.play_and_pause_button.setEnabled(False)
-        self.play_and_pause_button.setText("Play/Pause")        
 
     def generate_video(self):
         if (self.frame_rate is None):
@@ -910,6 +912,7 @@ class MainWindow(QMainWindow):
                     self.load_project(self.project_path)
 
     def reload_project(self):
+        self.ask_for_save()
         self.load_project(self.project_path)
 
     def load_project(self, project_path=None):
