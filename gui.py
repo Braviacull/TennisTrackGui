@@ -88,7 +88,7 @@ class MainWindow(QMainWindow):
         self.edit_menu = self.menu_bar.addMenu("Edit")
         self.video_menu = self.menu_bar.addMenu("Video")
         self.match_menu = self.menu_bar.addMenu("Match")
-        self.others_menu = self.menu_bar.addMenu("Others")
+        # self.others_menu = self.menu_bar.addMenu("Others")
 
         # Project menu actions
         self.new_project_action = QAction("New Project", self)
@@ -146,12 +146,12 @@ class MainWindow(QMainWindow):
         self.merge_action.setEnabled(False)
         self.buttons_to_deactivate_when_points.append(self.merge_action)
 
-        self.group_action = QAction("Group", self)
-        self.group_action.triggered.connect(self.group)
-        self.edit_menu.addAction(self.group_action)
-        self.buttons_to_activate.append(self.group_action)
-        self.group_action.setEnabled(False)
-        self.buttons_to_deactivate_when_points.append(self.group_action)
+        # self.group_action = QAction("Group", self)
+        # self.group_action.triggered.connect(self.group)
+        # self.edit_menu.addAction(self.group_action)
+        # self.buttons_to_activate.append(self.group_action)
+        # self.group_action.setEnabled(False)
+        # self.buttons_to_deactivate_when_points.append(self.group_action)
 
         self.split_action = QAction("Split", self)
         self.split_action.triggered.connect(self.split)
@@ -187,12 +187,12 @@ class MainWindow(QMainWindow):
         self.buttons_to_deactivate_when_points.append(self.set_points_action)
         self.set_points_action.setEnabled(False)
 
-        # Others menu actions
-        self.jolly_action = QAction("Jolly", self)
-        self.jolly_action.triggered.connect(self.jolly)
-        self.others_menu.addAction(self.jolly_action)
-        self.buttons_to_activate.append(self.jolly_action)
-        self.jolly_action.setEnabled(False)
+        # # Others menu actions
+        # self.jolly_action = QAction("Jolly", self)
+        # self.jolly_action.triggered.connect(self.jolly)
+        # self.others_menu.addAction(self.jolly_action)
+        # self.buttons_to_activate.append(self.jolly_action)
+        # self.jolly_action.setEnabled(False)
 
         # Create a splitter to hold the video frame the slider and the scroll area
         self.splitter = QSplitter(Qt.Vertical)
@@ -508,12 +508,12 @@ class MainWindow(QMainWindow):
         menu = QMenu()
         button = self.sender()
         
-        if self.scene_is_point == False:
-            ungroup = QAction("ungroup", self)
-            ungroup.triggered.connect(partial(self.ungroup_menu_action, button))
-            menu.addAction(ungroup)
+        # if self.scene_is_point == False:
+        #     ungroup = QAction("ungroup", self)
+        #     ungroup.triggered.connect(partial(self.ungroup_menu_action, button))
+        #     menu.addAction(ungroup)
 
-        elif self.scene_is_point == True:
+        if self.scene_is_point == True:
             data = get_data_from_button(self, button)
             if data.point_winner is not None:
                 set_point = QAction("set point", self)
